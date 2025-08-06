@@ -1,0 +1,288 @@
+import type { Express } from "express";
+import { createServer, type Server } from "http";
+import { storage } from "./storage";
+import { auth } from "./middleware/auth";
+import { aiService } from "./services/ai";
+import { loginSchema, registerSchema, insertFormSchema, insertSubmissionSchema } from "@shared/schema";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  
+  // Auth routes
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const { username, email, password } = registerSchema.parse(req.body);
+      
+      // Check if user exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User already exists" });
+      }
+      
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      // Create user
+      const user = await storage.createUser({
+        username,
+        email,
+        password: hashedPassword,
+      });
+      
+      // Generate JWT
+      const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "7d" });
+      
+      res.cookie("auth-token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+      
+      res.json({ user: { id: user.id, username: user.username, email: user.email } });
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Registration failed" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = loginSchema.parse(req.body);
+      
+      // Find user
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      // Verify password
+      const isValid = await bcrypt.compare(password, user.password);
+      if (!isValid) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      // Generate JWT
+      const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "7d" });
+      
+      res.cookie("auth-token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+      
+      res.json({ user: { id: user.id, username: user.username, email: user.email } });
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Login failed" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    res.clearCookie("auth-token");
+    res.json({ message: "Logged out successfully" });
+  });
+
+  app.get("/api/auth/me", auth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.userId!);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json({ user: { id: user.id, username: user.username, email: user.email } });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get user" });
+    }
+  });
+
+  // Forms routes
+  app.get("/api/forms", auth, async (req, res) => {
+    try {
+      const forms = await storage.getUserForms(req.userId!);
+      res.json(forms);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get forms" });
+    }
+  });
+
+  app.post("/api/forms", auth, async (req, res) => {
+    try {
+      const formData = insertFormSchema.parse({
+        ...req.body,
+        userId: req.userId,
+      });
+      
+      const form = await storage.createForm(formData);
+      res.json(form);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to create form" });
+    }
+  });
+
+  app.get("/api/forms/:id", auth, async (req, res) => {
+    try {
+      const form = await storage.getForm(req.params.id);
+      if (!form) {
+        return res.status(404).json({ message: "Form not found" });
+      }
+      
+      // Check ownership
+      if (form.userId !== req.userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      res.json(form);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get form" });
+    }
+  });
+
+  app.put("/api/forms/:id", auth, async (req, res) => {
+    try {
+      const form = await storage.getForm(req.params.id);
+      if (!form) {
+        return res.status(404).json({ message: "Form not found" });
+      }
+      
+      // Check ownership
+      if (form.userId !== req.userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const updatedForm = await storage.updateForm(req.params.id, req.body);
+      res.json(updatedForm);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to update form" });
+    }
+  });
+
+  app.delete("/api/forms/:id", auth, async (req, res) => {
+    try {
+      const form = await storage.getForm(req.params.id);
+      if (!form) {
+        return res.status(404).json({ message: "Form not found" });
+      }
+      
+      // Check ownership
+      if (form.userId !== req.userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      await storage.deleteForm(req.params.id);
+      res.json({ message: "Form deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete form" });
+    }
+  });
+
+  // Public form routes (for form filling)
+  app.get("/api/public/forms/:id", async (req, res) => {
+    try {
+      const form = await storage.getForm(req.params.id);
+      if (!form || !form.isPublished) {
+        return res.status(404).json({ message: "Form not found" });
+      }
+      
+      // Return form without sensitive data
+      const { userId, ...publicForm } = form;
+      res.json(publicForm);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get form" });
+    }
+  });
+
+  app.post("/api/public/forms/:id/submit", async (req, res) => {
+    try {
+      const form = await storage.getForm(req.params.id);
+      if (!form || !form.isPublished) {
+        return res.status(404).json({ message: "Form not found" });
+      }
+      
+      const submissionData = insertSubmissionSchema.parse({
+        formId: req.params.id,
+        data: req.body.data,
+        timeTaken: req.body.timeTaken,
+        ipAddress: req.ip,
+      });
+      
+      const submission = await storage.createSubmission(submissionData);
+      res.json({ submissionId: submission.id });
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to submit form" });
+    }
+  });
+
+  // Submissions routes
+  app.get("/api/forms/:id/submissions", auth, async (req, res) => {
+    try {
+      const form = await storage.getForm(req.params.id);
+      if (!form) {
+        return res.status(404).json({ message: "Form not found" });
+      }
+      
+      // Check ownership
+      if (form.userId !== req.userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const submissions = await storage.getFormSubmissions(req.params.id);
+      res.json(submissions);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get submissions" });
+    }
+  });
+
+  app.get("/api/forms/:id/analytics", auth, async (req, res) => {
+    try {
+      const form = await storage.getForm(req.params.id);
+      if (!form) {
+        return res.status(404).json({ message: "Form not found" });
+      }
+      
+      // Check ownership
+      if (form.userId !== req.userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const analytics = await storage.getFormAnalytics(req.params.id);
+      res.json(analytics);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get analytics" });
+    }
+  });
+
+  // AI conversation routes
+  app.post("/api/ai/chat", async (req, res) => {
+    try {
+      const { message, fieldId, submissionId } = req.body;
+      
+      if (!message || !fieldId) {
+        return res.status(400).json({ message: "Message and fieldId are required" });
+      }
+      
+      // Get AI response
+      const response = await aiService.chat(message);
+      
+      // Save conversation if submissionId provided
+      if (submissionId) {
+        await storage.saveAIConversation({
+          submissionId,
+          fieldId,
+          messages: [
+            { role: 'user', content: message, timestamp: new Date().toISOString() },
+            { role: 'assistant', content: response, timestamp: new Date().toISOString() }
+          ]
+        });
+      }
+      
+      res.json({ response });
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "AI service unavailable" });
+    }
+  });
+
+  const httpServer = createServer(app);
+  return httpServer;
+}
