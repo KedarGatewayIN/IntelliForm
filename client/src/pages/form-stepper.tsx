@@ -43,18 +43,95 @@ export default function FormStepper() {
     }
   };
 
+  const validateCurrentField = (): { valid: boolean; message?: string } => {
+    if (!form) return { valid: false };
+    const field = form.fields[currentQuestionIndex];
+    const value = answers[field.id];
+
+    // Check if required field is filled
+    if (field.required) {
+      if (value === undefined || value === null || value === "") {
+        return { valid: false, message: `${field.label} is required.` };
+      }
+      if (Array.isArray(value) && value.length === 0) {
+        return { valid: false, message: `Please select at least one option for ${field.label}.` };
+      }
+    }
+
+    // Skip validation if no value is provided and field is not required
+    if (!field.required && (value === undefined || value === null || value === "")) {
+      return { valid: true };
+    }
+
+    // Apply validation rules
+    if (field.validation) {
+      for (const rule of field.validation) {
+        switch (rule.type) {
+          case "min":
+            if (field.type === "number" && (isNaN(value) || Number(value) < Number(rule.value))) {
+              return { valid: false, message: rule.message };
+            }
+            if ((field.type === "text" || field.type === "textarea" || field.type === "email") && value.length < Number(rule.value)) {
+              return { valid: false, message: rule.message };
+            }
+            if ((field.type === "checkbox" || field.type === "select") && Array.isArray(value) && value.length < Number(rule.value)) {
+              return { valid: false, message: rule.message };
+            }
+            break;
+          case "max":
+            if (field.type === "number" && (isNaN(value) || Number(value) > Number(rule.value))) {
+              return { valid: false, message: rule.message };
+            }
+            if ((field.type === "text" || field.type === "textarea" || field.type === "email") && value.length > Number(rule.value)) {
+              return { valid: false, message: rule.message };
+            }
+            if ((field.type === "checkbox" || field.type === "select") && Array.isArray(value) && value.length > Number(rule.value)) {
+              return { valid: false, message: rule.message };
+            }
+            break;
+          case "email":
+            if (field.type === "email" && value) {
+              const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+              if (!emailRegex.test(value)) {
+                return { valid: false, message: rule.message };
+              }
+            }
+            break;
+          case "url":
+            if ((field.type === "text" || field.type === "textarea") && value) {
+              const urlRegex = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/;
+              if (!urlRegex.test(value)) {
+                return { valid: false, message: rule.message };
+              }
+            }
+            break;
+          case "pattern":
+            if ((field.type === "text" || field.type === "textarea" || field.type === "email") && value) {
+              const regex = new RegExp(rule.value as string);
+              if (!regex.test(value)) {
+                return { valid: false, message: rule.message };
+              }
+            }
+            break;
+        }
+      }
+    }
+
+    return { valid: true };
+  };
+
   const submitForm = async () => {
     if (!form) return;
-    
+
     setIsSubmitting(true);
     try {
       const timeTaken = Math.floor((Date.now() - startTime) / 1000);
-      
+
       await apiRequest("POST", `/api/public/forms/${form.id}/submit`, {
         data: answers,
         timeTaken,
       });
-      
+
       toast({
         title: "Thank you!",
         description: "Your response has been submitted successfully.",
@@ -75,7 +152,17 @@ export default function FormStepper() {
 
   const nextQuestion = () => {
     if (!form) return;
-    
+
+    const validation = validateCurrentField();
+    if (!validation.valid) {
+      toast({
+        title: "Validation Error",
+        description: validation.message || "Please correct the input.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (currentQuestionIndex < form.fields.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
     } else {

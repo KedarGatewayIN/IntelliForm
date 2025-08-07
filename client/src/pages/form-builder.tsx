@@ -109,6 +109,11 @@ export default function FormBuilder() {
       label: `${fieldType.charAt(0).toUpperCase() + fieldType.slice(1)} Field`,
       required: false,
       aiEnabled: fieldType === 'ai_conversation',
+      validation: fieldType === 'email' ? [{
+        type: 'email',
+        message: 'Please enter a valid email address',
+        value: '',
+      }] : [],
     };
 
     setForm(prev => ({

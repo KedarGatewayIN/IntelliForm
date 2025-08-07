@@ -63,7 +63,7 @@ export default function ElementSidebar({ onAddField }: ElementSidebarProps) {
                     <div
                       key={item.type}
                       onClick={() => onAddField(item.type)}
-                      className={`p-3 rounded-lg border cursor-grab hover:shadow-sm transition-all ${
+                      className={`p-3 rounded-lg border cursor-pointer hover:shadow-sm transition-all ${
                         item.special 
                           ? 'bg-gradient-to-r from-secondary/10 to-primary/10 border-purple-200 hover:from-secondary/20 hover:to-primary/20'
                           : 'bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
