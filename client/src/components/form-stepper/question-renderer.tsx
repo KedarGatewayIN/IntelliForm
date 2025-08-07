@@ -31,6 +31,8 @@ export default function QuestionRenderer({ field, value, onChange }: QuestionRen
             onChange={(e) => onChange(e.target.value)}
             placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
             className="text-lg"
+            required={field.required}
+            // maxLength={field.validation}
           />
         );
 
@@ -44,12 +46,13 @@ export default function QuestionRenderer({ field, value, onChange }: QuestionRen
             onChange={(e) => onChange(e.target.value)}
             placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
             className="text-lg min-h-32"
+            required={field.required}
           />
         );
 
       case "radio":
         return (
-          <RadioGroup value={value} onValueChange={onChange}>
+          <RadioGroup value={value} onValueChange={onChange} required={field.required}>
             <div className="space-y-3">
               {(field.options || []).map((option, index) => (
                 <Label
