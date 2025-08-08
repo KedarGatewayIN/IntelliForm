@@ -14,12 +14,15 @@ import { CalendarIcon, StarIcon, UploadIcon } from "lucide-react";
 import { format } from "date-fns";
 
 interface QuestionRendererProps {
+  autofocus: boolean;
   field: FormField;
   value: any;
   onChange: (value: any) => void;
+  previousStep: () => void;
+  nextStep: () => void;
 }
 
-export default function QuestionRenderer({ field, value, onChange }: QuestionRendererProps) {
+export default function QuestionRenderer({ autofocus, field, value, onChange, previousStep, nextStep }: QuestionRendererProps) {
   const [touched, setTouched] = useState(false);
 
   // Reset touched state when field changes (e.g., navigating to a new question)
@@ -121,6 +124,7 @@ export default function QuestionRenderer({ field, value, onChange }: QuestionRen
               className={`text-lg ${validationError ? "border-red-500" : ""}`}
               required={field.required}
               maxLength={field.validation?.find((rule) => rule.type === "max")?.value as number | undefined}
+              autoFocus={autofocus}
             />
             {validationError && <p className="text-red-500 text-sm mt-1">{validationError}</p>}
           </div>
@@ -143,6 +147,7 @@ export default function QuestionRenderer({ field, value, onChange }: QuestionRen
               className={`text-lg min-h-32 ${validationError ? "border-red-500" : ""}`}
               required={field.required}
               maxLength={field.validation?.find((rule) => rule.type === "max")?.value as number | undefined}
+              autoFocus={autofocus}
             />
             {validationError && <p className="text-red-500 text-sm mt-1">{validationError}</p>}
           </div>
@@ -158,6 +163,7 @@ export default function QuestionRenderer({ field, value, onChange }: QuestionRen
                 setTouched(true);
               }}
               required={field.required}
+              autoFocus={autofocus}
             >
               <div className="space-y-3">
                 {(field.options || []).map((option, index) => (
@@ -221,7 +227,7 @@ export default function QuestionRenderer({ field, value, onChange }: QuestionRen
               <SelectTrigger className={`text-lg ${validationError ? "border-red-500" : ""}`}>
                 <SelectValue placeholder="Select an option" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent autoFocus={autofocus}>
                 {(field.options || []).map((option, index) => (
                   <SelectItem key={index} value={option}>{option}</SelectItem>
                 ))}
@@ -324,8 +330,9 @@ export default function QuestionRenderer({ field, value, onChange }: QuestionRen
         </h2>
         {field.placeholder && <p className="text-gray-600">{field.placeholder}</p>}
       </div>
-
-      {renderField()}
+      <form onSubmit={e => {e.preventDefault(); nextStep()}}>
+        {renderField()}
+      </form>
     </div>
   );
 }

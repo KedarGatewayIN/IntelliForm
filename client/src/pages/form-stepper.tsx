@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -13,7 +13,8 @@ export default function FormStepper() {
   const params = useParams();
   const { toast } = useToast();
   const [form, setForm] = useState<Form | null>(null);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  // Instead of question index, we use step index (each step can have multiple fields)
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,80 +44,104 @@ export default function FormStepper() {
     }
   };
 
-  const validateCurrentField = (): { valid: boolean; message?: string } => {
-    if (!form) return { valid: false };
-    const field = form.fields[currentQuestionIndex];
-    const value = answers[field.id];
-
-    // Check if required field is filled
-    if (field.required) {
-      if (value === undefined || value === null || value === "") {
-        return { valid: false, message: `${field.label} is required.` };
-      }
-      if (Array.isArray(value) && value.length === 0) {
-        return { valid: false, message: `Please select at least one option for ${field.label}.` };
-      }
-    }
-
-    // Skip validation if no value is provided and field is not required
-    if (!field.required && (value === undefined || value === null || value === "")) {
-      return { valid: true };
-    }
-
-    // Apply validation rules
-    if (field.validation) {
-      for (const rule of field.validation) {
-        switch (rule.type) {
-          case "min":
-            if (field.type === "number" && (isNaN(value) || Number(value) < Number(rule.value))) {
-              return { valid: false, message: rule.message };
-            }
-            if ((field.type === "text" || field.type === "textarea" || field.type === "email") && value.length < Number(rule.value)) {
-              return { valid: false, message: rule.message };
-            }
-            if ((field.type === "checkbox" || field.type === "select") && Array.isArray(value) && value.length < Number(rule.value)) {
-              return { valid: false, message: rule.message };
-            }
-            break;
-          case "max":
-            if (field.type === "number" && (isNaN(value) || Number(value) > Number(rule.value))) {
-              return { valid: false, message: rule.message };
-            }
-            if ((field.type === "text" || field.type === "textarea" || field.type === "email") && value.length > Number(rule.value)) {
-              return { valid: false, message: rule.message };
-            }
-            if ((field.type === "checkbox" || field.type === "select") && Array.isArray(value) && value.length > Number(rule.value)) {
-              return { valid: false, message: rule.message };
-            }
-            break;
-          case "email":
-            if (field.type === "email" && value) {
-              const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-              if (!emailRegex.test(value)) {
-                return { valid: false, message: rule.message };
-              }
-            }
-            break;
-          case "url":
-            if ((field.type === "text" || field.type === "textarea") && value) {
-              const urlRegex = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/;
-              if (!urlRegex.test(value)) {
-                return { valid: false, message: rule.message };
-              }
-            }
-            break;
-          case "pattern":
-            if ((field.type === "text" || field.type === "textarea" || field.type === "email") && value) {
-              const regex = new RegExp(rule.value as string);
-              if (!regex.test(value)) {
-                return { valid: false, message: rule.message };
-              }
-            }
-            break;
+  // Group fields into steps: 2-3 fields per step, but AI-enabled textarea is always a single step
+  const steps = useMemo(() => {
+    if (!form) return [];
+    const grouped = [];
+    let currentGroup = [];
+    for (let i = 0; i < form.fields.length; i++) {
+      const field = form.fields[i];
+      // If AI-enabled textarea, push as its own step
+      if (field.type === "textarea" && field.aiEnabled) {
+        if (currentGroup.length) {
+          grouped.push(currentGroup);
+          currentGroup = [];
+        }
+        grouped.push([field]);
+      } else {
+        currentGroup.push(field);
+        if (currentGroup.length === 3) {
+          grouped.push(currentGroup);
+          currentGroup = [];
         }
       }
     }
+    if (currentGroup.length) grouped.push(currentGroup);
+    return grouped;
+  }, [form]);
 
+  // Validate all fields in the current step
+  const validateCurrentStep = (): { valid: boolean; message?: string } => {
+    if (!steps.length) return { valid: false };
+    for (const field of steps[currentStepIndex]) {
+      const value = answers[field.id];
+      // Required check
+      if (field.required) {
+        if (value === undefined || value === null || value === "") {
+          return { valid: false, message: `${field.label} is required.` };
+        }
+        if (Array.isArray(value) && value.length === 0) {
+          return { valid: false, message: `Please select at least one option for ${field.label}.` };
+        }
+      }
+      // Skip validation if not required and empty
+      if (!field.required && (value === undefined || value === null || value === "")) {
+        continue;
+      }
+      // Validation rules
+      if (field.validation) {
+        for (const rule of field.validation) {
+          switch (rule.type) {
+            case "min":
+              if (field.type === "number" && (isNaN(value) || Number(value) < Number(rule.value))) {
+                return { valid: false, message: rule.message };
+              }
+              if ((field.type === "text" || field.type === "textarea" || field.type === "email") && value.length < Number(rule.value)) {
+                return { valid: false, message: rule.message };
+              }
+              if ((field.type === "checkbox" || field.type === "select") && Array.isArray(value) && value.length < Number(rule.value)) {
+                return { valid: false, message: rule.message };
+              }
+              break;
+            case "max":
+              if (field.type === "number" && (isNaN(value) || Number(value) > Number(rule.value))) {
+                return { valid: false, message: rule.message };
+              }
+              if ((field.type === "text" || field.type === "textarea" || field.type === "email") && value.length > Number(rule.value)) {
+                return { valid: false, message: rule.message };
+              }
+              if ((field.type === "checkbox" || field.type === "select") && Array.isArray(value) && value.length > Number(rule.value)) {
+                return { valid: false, message: rule.message };
+              }
+              break;
+            case "email":
+              if (field.type === "email" && value) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(value)) {
+                  return { valid: false, message: rule.message };
+                }
+              }
+              break;
+            case "url":
+              if ((field.type === "text" || field.type === "textarea") && value) {
+                const urlRegex = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/;
+                if (!urlRegex.test(value)) {
+                  return { valid: false, message: rule.message };
+                }
+              }
+              break;
+            case "pattern":
+              if ((field.type === "text" || field.type === "textarea" || field.type === "email") && value) {
+                const regex = new RegExp(rule.value as string);
+                if (!regex.test(value)) {
+                  return { valid: false, message: rule.message };
+                }
+              }
+              break;
+          }
+        }
+      }
+    }
     return { valid: true };
   };
 
@@ -138,7 +163,7 @@ export default function FormStepper() {
       });
       
       // Reset form or show thank you message
-      setCurrentQuestionIndex(form.fields.length);
+      setCurrentStepIndex(steps.length);
     } catch (error) {
       toast({
         title: "Error",
@@ -150,10 +175,9 @@ export default function FormStepper() {
     }
   };
 
-  const nextQuestion = () => {
-    if (!form) return;
-
-    const validation = validateCurrentField();
+  const nextStep = () => {
+    if (!steps.length) return;
+    const validation = validateCurrentStep();
     if (!validation.valid) {
       toast({
         title: "Validation Error",
@@ -162,17 +186,16 @@ export default function FormStepper() {
       });
       return;
     }
-
-    if (currentQuestionIndex < form.fields.length - 1) {
-      setCurrentQuestionIndex(prev => prev + 1);
+    if (currentStepIndex < steps.length - 1) {
+      setCurrentStepIndex(prev => prev + 1);
     } else {
       submitForm();
     }
   };
 
-  const previousQuestion = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(prev => prev - 1);
+  const previousStep = () => {
+    if (currentStepIndex > 0) {
+      setCurrentStepIndex(prev => prev - 1);
     }
   };
 
@@ -202,7 +225,7 @@ export default function FormStepper() {
   }
 
   // Thank you page after submission
-  if (currentQuestionIndex >= form.fields.length) {
+  if (currentStepIndex >= steps.length) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
         <Card className="max-w-2xl w-full">
@@ -220,8 +243,10 @@ export default function FormStepper() {
     );
   }
 
-  const currentField = form.fields[currentQuestionIndex];
-  const progress = ((currentQuestionIndex + 1) / form.fields.length) * 100;
+  // Current fields for this step
+  const currentFields = steps[currentStepIndex] || [];
+  // Progress: steps based
+  const progress = ((currentStepIndex + 1) / steps.length) * 100;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -229,7 +254,7 @@ export default function FormStepper() {
         {/* Progress Bar */}
         <div className="mb-8">
           <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-            <span>Question {currentQuestionIndex + 1} of {form.fields.length}</span>
+            <span>Step {currentStepIndex + 1} of {steps.length}</span>
             <span>{Math.round(progress)}% complete</span>
           </div>
           <Progress value={progress} className="h-2" />
@@ -238,11 +263,18 @@ export default function FormStepper() {
         {/* Question Card */}
         <Card className="shadow-xl mb-6">
           <CardContent className="p-8">
-            <QuestionRenderer
-              field={currentField}
-              value={answers[currentField.id]}
-              onChange={(value) => updateAnswer(currentField.id, value)}
-            />
+            {currentFields.map((field, index) => (
+              <div key={field.id} className="mb-8 last:mb-0">
+                <QuestionRenderer
+                  autofocus={index === 0}
+                  field={field}
+                  value={answers[field.id]}
+                  onChange={(value) => updateAnswer(field.id, value)}
+                  previousStep={previousStep}
+                  nextStep={nextStep}
+                />
+              </div>
+            ))}
           </CardContent>
         </Card>
 
@@ -250,37 +282,35 @@ export default function FormStepper() {
         <div className="flex justify-between items-center">
           <Button
             variant="outline"
-            onClick={previousQuestion}
-            disabled={currentQuestionIndex === 0}
+            onClick={previousStep}
+            disabled={currentStepIndex === 0}
             className="flex items-center"
           >
             <ArrowLeftIcon className="h-4 w-4 mr-2" />
             Previous
           </Button>
-          
           <div className="flex space-x-2">
-            {form.fields.map((_, index) => (
+            {steps.map((_, index) => (
               <div
                 key={index}
                 className={`w-3 h-3 rounded-full transition-colors ${
-                  index === currentQuestionIndex
+                  index === currentStepIndex
                     ? 'bg-primary'
-                    : index < currentQuestionIndex
+                    : index < currentStepIndex
                     ? 'bg-primary/60'
                     : 'bg-gray-300'
                 }`}
               />
             ))}
           </div>
-          
           <Button
-            onClick={nextQuestion}
+            onClick={nextStep}
             disabled={isSubmitting}
             className="flex items-center"
           >
             {isSubmitting ? (
               "Submitting..."
-            ) : currentQuestionIndex === form.fields.length - 1 ? (
+            ) : currentStepIndex === steps.length - 1 ? (
               "Submit"
             ) : (
               <>
