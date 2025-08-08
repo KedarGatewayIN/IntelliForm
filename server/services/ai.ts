@@ -32,6 +32,7 @@ class AIService {
             IMPORTANT: When you have provided a definitive solution or directed the user to the correct support channel, and you believe the conversation on this specific topic is complete, you MUST end your response with the exact flag: [CONVERSATION_FINISHED].
             This flag is critical for the application to proceed.
             If user says all good or nothing from his side or all was nice kind of 100% positive feedback, you can also end the conversation with the flag.
+            Never ever ask him if he has any other questions or for further details, just end the conversation with the flag.
 
             Example with flag:
             "I see you're having trouble with your laptop. Please email hardware@thegatewaycorp.com for assistance. They will be able to help you with that. [CONVERSATION_FINISHED]"
@@ -70,7 +71,7 @@ class AIService {
           role: "system",
           content: `
             You are a summarizer AI. Analyze the provided conversation and produce a one-sentence summary in the format: "User faced [X problem] and we suggested them to contact [Y] for it."
-            If the conversation is unclear, respond with: "User provided feedback but no specific actionable issue was resolved."
+            If the conversation is unclear, just respond with what the user said.
             `
         },
         {
