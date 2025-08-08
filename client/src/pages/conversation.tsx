@@ -22,17 +22,27 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { CalendarIcon, StarIcon, UploadIcon } from "lucide-react";
+import {
+  CalendarIcon,
+  StarIcon,
+  UploadIcon,
+  SendIcon,
+  BotIcon,
+  UserIcon,
+  CheckCircleIcon,
+  LoaderIcon,
+} from "lucide-react";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 
-// Helper function to validate a field's value based on its type and rules.
+// Helper function to validate a field's value
 const validateField = (
   field: FormField,
   response: any
 ): { valid: boolean; value?: any; message?: string } => {
   let value: any = response;
-  // Required field validation
+
   if (
     field.required &&
     (value == null ||
@@ -42,7 +52,6 @@ const validateField = (
     return { valid: false, message: "This field is required." };
   }
 
-  // Type-specific validation and custom validation rules
   if (field.validation) {
     for (const rule of field.validation) {
       switch (rule.type) {
@@ -51,15 +60,11 @@ const validateField = (
             return { valid: false, message: rule.message };
           if (typeof value === "number" && value < rule.value)
             return { valid: false, message: rule.message };
-          if (Array.isArray(value) && value.length < rule.value)
-            return { valid: false, message: rule.message };
           break;
         case "max":
           if (typeof value === "string" && value.length > rule.value)
             return { valid: false, message: rule.message };
           if (typeof value === "number" && value > rule.value)
-            return { valid: false, message: rule.message };
-          if (Array.isArray(value) && value.length > rule.value)
             return { valid: false, message: rule.message };
           break;
         case "pattern":
@@ -77,7 +82,7 @@ const validateField = (
   return { valid: true, value };
 };
 
-// Renders the appropriate input control based on the field type for non-text fields.
+// Modern Field Renderer Component
 const FieldRenderer: React.FC<{
   field: FormField;
   onSubmit: (value: any) => void;
@@ -86,6 +91,7 @@ const FieldRenderer: React.FC<{
     field.type === "checkbox" ? [] : ""
   );
   const [touched, setTouched] = useState(false);
+
   const validationError =
     touched && !validateField(field, localValue)?.valid
       ? validateField(field, localValue)?.message
@@ -106,7 +112,7 @@ const FieldRenderer: React.FC<{
     case "password":
     case "url":
       return (
-        <div>
+        <div className="space-y-3">
           <Input
             type={field.type}
             value={localValue}
@@ -114,105 +120,140 @@ const FieldRenderer: React.FC<{
             placeholder={
               field.placeholder || `Enter ${field.label.toLowerCase()}`
             }
-            className={`text-lg ${validationError ? "border-red-500" : ""}`}
+            className={cn(
+              "text-base border-2 transition-all duration-200 focus:border-blue-500",
+              validationError
+                ? "border-red-400 focus:border-red-500"
+                : "border-gray-200"
+            )}
             required={field.required}
-            maxLength={
-              field.validation?.find((rule) => rule.type === "max")?.value as
-                | number
-                | undefined
-            }
             autoFocus
           />
           {validationError && (
-            <p className="text-red-500 text-sm mt-1">{validationError}</p>
+            <p className="text-red-500 text-sm animate-in slide-in-from-top-1">
+              {validationError}
+            </p>
           )}
           <Button
             onClick={handleSubmit}
-            className="mt-2"
+            className="w-full bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
             disabled={!!validationError}
           >
-            Submit
+            Continue
           </Button>
         </div>
       );
+
     case "radio":
       return (
         <RadioGroup
           value={localValue}
           onValueChange={(val) => onSubmit(val)}
-          className="space-y-2"
+          className="space-y-3"
         >
-          {(field.options || []).map((option) => (
+          {(field.options || []).map((option, index) => (
             <Label
               key={option}
-              className="flex items-center space-x-2 p-3 border rounded-md hover:bg-muted cursor-pointer"
+              className={cn(
+                "flex items-center space-x-3 p-4 border-2 rounded-xl cursor-pointer transition-all duration-200",
+                "hover:border-blue-300 hover:bg-blue-50/50",
+                "animate-in slide-in-from-left-2",
+                localValue === option
+                  ? "border-blue-500 bg-blue-50"
+                  : "border-gray-200"
+              )}
+              style={{ animationDelay: `${index * 100}ms` }}
             >
               <RadioGroupItem value={option} id={`${field.id}-${option}`} />
-              <span>{option}</span>
+              <span className="text-base">{option}</span>
             </Label>
           ))}
         </RadioGroup>
       );
+
     case "checkbox":
       return (
-        <div className="space-y-2">
-          {(field.options || []).map((option) => (
-            <Label
-              key={option}
-              className="flex items-center space-x-2 p-3 border rounded-md hover:bg-muted cursor-pointer"
-            >
-              <Checkbox
-                id={`${field.id}-${option}`}
-                checked={localValue.includes(option)}
-                onCheckedChange={(checked) => {
-                  const newValue = checked
-                    ? [...localValue, option]
-                    : localValue.filter((v: string) => v !== option);
-                  setLocalValue(newValue);
-                }}
-              />
-              <span>{option}</span>
-            </Label>
-          ))}
-          <Button onClick={() => onSubmit(localValue)} className="mt-2">
-            Submit
+        <div className="space-y-4">
+          <div className="space-y-3">
+            {(field.options || []).map((option, index) => (
+              <Label
+                key={option}
+                className={cn(
+                  "flex items-center space-x-3 p-4 border-2 rounded-xl cursor-pointer transition-all duration-200",
+                  "hover:border-blue-300 hover:bg-blue-50/50",
+                  "animate-in slide-in-from-left-2",
+                  localValue.includes(option)
+                    ? "border-blue-500 bg-blue-50"
+                    : "border-gray-200"
+                )}
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <Checkbox
+                  id={`${field.id}-${option}`}
+                  checked={localValue.includes(option)}
+                  onCheckedChange={(checked) => {
+                    const newValue = checked
+                      ? [...localValue, option]
+                      : localValue.filter((v: string) => v !== option);
+                    setLocalValue(newValue);
+                  }}
+                />
+                <span className="text-base">{option}</span>
+              </Label>
+            ))}
+          </div>
+          <Button
+            onClick={() => onSubmit(localValue)}
+            className="w-full bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
+          >
+            Continue
           </Button>
         </div>
       );
+
     case "select":
       return (
         <Select onValueChange={(val) => onSubmit(val)}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select an option" />
+          <SelectTrigger className="text-base border-2 border-gray-200 focus:border-blue-500 h-12">
+            <SelectValue placeholder="Choose an option" />
           </SelectTrigger>
           <SelectContent>
             {(field.options || []).map((option) => (
-              <SelectItem key={option} value={option}>
+              <SelectItem
+                key={option}
+                value={option}
+                className="text-base py-3"
+              >
                 {option}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       );
+
     case "date":
       return (
-        <div>
+        <div className="space-y-3">
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
-                className={`w-full justify-start text-left font-normal text-lg ${
-                  validationError ? "border-red-500" : ""
-                }`}
+                className={cn(
+                  "w-full justify-start text-left font-normal text-base h-12 border-2 transition-all duration-200",
+                  validationError
+                    ? "border-red-400"
+                    : "border-gray-200 hover:border-blue-300",
+                  !localValue && "text-muted-foreground"
+                )}
                 onClick={() => setTouched(true)}
               >
-                <CalendarIcon className="mr-2 h-4 w-4" />
+                <CalendarIcon className="mr-3 h-5 w-5" />
                 {localValue
                   ? format(new Date(localValue), "PPP")
                   : "Pick a date"}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
+            <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
                 selected={localValue ? new Date(localValue) : undefined}
@@ -226,22 +267,26 @@ const FieldRenderer: React.FC<{
             </PopoverContent>
           </Popover>
           {validationError && (
-            <p className="text-red-500 text-sm mt-1">{validationError}</p>
+            <p className="text-red-500 text-sm animate-in slide-in-from-top-1">
+              {validationError}
+            </p>
           )}
         </div>
       );
+
     case "rating":
       return (
-        <div>
-          <div className="flex space-x-2">
+        <div className="space-y-4">
+          <div className="flex justify-center space-x-2">
             {[1, 2, 3, 4, 5].map((star) => (
               <StarIcon
                 key={star}
-                className={`h-8 w-8 cursor-pointer transition-colors ${
+                className={cn(
+                  "h-10 w-10 cursor-pointer transition-all duration-200 hover:scale-110",
                   star <= (localValue || 0)
                     ? "text-yellow-400 fill-yellow-400"
-                    : "text-gray-300"
-                }`}
+                    : "text-gray-300 hover:text-yellow-200"
+                )}
                 onClick={() => {
                   handleChange(star);
                   onSubmit(star);
@@ -249,46 +294,54 @@ const FieldRenderer: React.FC<{
               />
             ))}
           </div>
-          {validationError && (
-            <p className="text-red-500 text-sm mt-1">{validationError}</p>
+          {localValue > 0 && (
+            <p className="text-center text-sm text-gray-600 animate-in fade-in">
+              You rated {localValue} out of 5 stars
+            </p>
           )}
         </div>
       );
+
     case "slider":
       return (
-        <div>
+        <div className="space-y-4">
           <Slider
             value={[localValue || 0]}
             onValueChange={(val) => handleChange(val[0])}
             min={0}
             max={100}
             step={1}
-            className="mt-2"
+            className="mt-4"
           />
-          <p className="text-sm text-gray-500 mt-1">Value: {localValue}</p>
-          {validationError && (
-            <p className="text-red-500 text-sm mt-1">{validationError}</p>
-          )}
+          <div className="text-center">
+            <span className="text-2xl font-bold text-blue-600">
+              {localValue || 0}
+            </span>
+            <span className="text-gray-500 ml-1">/ 100</span>
+          </div>
           <Button
             onClick={handleSubmit}
-            className="mt-2"
+            className="w-full bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
             disabled={!!validationError}
           >
-            Submit
+            Continue
           </Button>
         </div>
       );
+
     case "file":
       return (
-        <div>
+        <div className="space-y-4">
           <div
-            className={`border-2 border-dashed rounded-lg p-8 text-center hover:border-gray-400 transition-colors ${
-              validationError ? "border-red-500" : "border-gray-300"
-            }`}
+            className={cn(
+              "border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200",
+              "hover:border-blue-400 hover:bg-blue-50/30",
+              validationError ? "border-red-400" : "border-gray-300"
+            )}
           >
             <UploadIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-lg font-medium text-gray-900 mb-2">
-              Click to upload or drag and drop
+              Drop your file here or click to browse
             </p>
             <p className="text-gray-500">SVG, PNG, JPG or GIF (max. 10MB)</p>
             <input
@@ -298,52 +351,78 @@ const FieldRenderer: React.FC<{
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) {
-                  handleChange(file.name); // Simplified; handle upload in real app
+                  handleChange(file.name);
                 }
               }}
             />
             <label htmlFor="file-input" className="cursor-pointer">
-              <span className="inline-block mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+              <span className="inline-block mt-4 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200">
                 Select File
               </span>
             </label>
           </div>
           {validationError && (
-            <p className="text-red-500 text-sm mt-1">{validationError}</p>
+            <p className="text-red-500 text-sm animate-in slide-in-from-top-1">
+              {validationError}
+            </p>
           )}
           <Button
             onClick={handleSubmit}
-            className="mt-2"
+            className="w-full bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
             disabled={!!validationError}
           >
-            Submit
+            Continue
           </Button>
         </div>
       );
+
     default:
       return null;
   }
 };
+
+// Typing indicator component
+const TypingIndicator = () => (
+  <div className="flex items-end space-x-3 justify-start animate-in slide-in-from-left-2">
+    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
+      <BotIcon className="w-4 h-4 text-white" />
+    </div>
+    <div className="bg-gray-100 rounded-2xl rounded-bl-md px-4 py-3">
+      <div className="flex space-x-1">
+        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+        <div
+          className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+          style={{ animationDelay: "0.1s" }}
+        ></div>
+        <div
+          className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+          style={{ animationDelay: "0.2s" }}
+        ></div>
+      </div>
+    </div>
+  </div>
+);
 
 export default function ConversationalForm() {
   const { id } = useParams<{ id: string }>();
   const [form, setForm] = useState<Form | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [conversation, setConversation] = useState<
-    { role: "system" | "user"; content: string }[]
+    { role: "system" | "user"; content: string; timestamp?: Date }[]
   >([]);
   const [answeredFields, setAnsweredFields] = useState<Record<string, any>>({});
   const [activeField, setActiveField] = useState<FormField | null>(null);
-  const [history, setHistory] = useState<string[]>([]);
   const [userInput, setUserInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [showTyping, setShowTyping] = useState(false);
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-
-  // --- STATE FOR SEAMLESS AI INTEGRATION ---
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [startTime] = useState(Date.now());
   const [isAiChatMode, setIsAiChatMode] = useState(false);
   const [aiChatStartIndex, setAiChatStartIndex] = useState<number | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const textInputTypes = [
     "text",
@@ -359,26 +438,26 @@ export default function ConversationalForm() {
   }, [id]);
 
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
-    }
-  }, [conversation]);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [conversation, showTyping]);
 
-  // Effect to manage entering/exiting AI Chat Mode based on the active field.
   useEffect(() => {
     if (activeField?.type === "textarea" && (activeField as any).aiEnabled) {
       setIsAiChatMode(true);
-      // When AI mode begins, we add the question to the log and record its index.
-      // This marks the starting point of the AI interaction.
-      setConversation((prev) => [
-        ...prev,
-        { role: "system", content: activeField.label },
-      ]);
-      setAiChatStartIndex(conversation.length);
+      setShowTyping(true);
+      setTimeout(() => {
+        setShowTyping(false);
+        setConversation((prev) => [
+          ...prev,
+          { role: "system", content: activeField.label, timestamp: new Date() },
+        ]);
+        setAiChatStartIndex(conversation.length);
+      }, 1000);
     } else {
       setIsAiChatMode(false);
       setAiChatStartIndex(null);
     }
+    inputRef.current?.focus();
   }, [activeField]);
 
   const loadForm = async () => {
@@ -387,8 +466,22 @@ export default function ConversationalForm() {
       const response = await apiRequest("GET", `/api/public/forms/${id}`);
       const formData = await response.json();
       setForm(formData);
-      const nextField = getNextField({}, formData.fields);
-      setActiveField(nextField);
+
+      // Add welcome message
+      setTimeout(() => {
+        setConversation([
+          {
+            role: "system",
+            content: `Hi! Welcome to ${formData.title}. ${formData.description}. Let's get started!`,
+            timestamp: new Date(),
+          },
+        ]);
+
+        setTimeout(() => {
+          const nextField = getNextField({}, formData.fields);
+          setActiveField(nextField);
+        }, 1000);
+      }, 500);
     } catch (error) {
       toast({
         title: "Error",
@@ -421,19 +514,30 @@ export default function ConversationalForm() {
 
   const submitForm = async (finalAnswers: Record<string, any>) => {
     setIsSubmitting(true);
+    setShowTyping(true);
+
     try {
-      await apiRequest("POST", `/api/forms/${id}/submissions`, {
-        responses: finalAnswers,
+      const timeTaken = Math.floor((Date.now() - startTime) / 1000);
+      await apiRequest("POST", `/api/public/forms/${form!.id}/submit`, {
+        data: finalAnswers,
+        timeTaken,
       });
-      setIsSubmitted(true);
-      setConversation((prev) => [
-        ...prev,
-        {
-          role: "system",
-          content: "Thank you for your submission!",
-        },
-      ]);
+
+      setTimeout(() => {
+        setShowTyping(false);
+        setIsSubmitted(true);
+        setConversation((prev) => [
+          ...prev,
+          {
+            role: "system",
+            content:
+              "Perfect! Thank you for taking the time to complete this form. Your responses have been submitted successfully! 🎉",
+            timestamp: new Date(),
+          },
+        ]);
+      }, 1500);
     } catch (error) {
+      setShowTyping(false);
       toast({
         title: "Submission Error",
         description: "Could not submit the form.",
@@ -441,6 +545,7 @@ export default function ConversationalForm() {
       });
     } finally {
       setIsSubmitting(false);
+      inputRef.current?.focus();
     }
   };
 
@@ -450,6 +555,7 @@ export default function ConversationalForm() {
       value: validatedValue,
       message,
     } = validateField(field, value);
+
     if (!valid) {
       toast({
         title: "Invalid Input",
@@ -459,22 +565,28 @@ export default function ConversationalForm() {
       return;
     }
 
-    // Add question and final answer to the conversation log.
+    // Add user response
     setConversation((prev) => [
       ...prev,
       { role: "system", content: field.label },
-      { role: "user", content: String(validatedValue) },
+      { role: "user", content: String(validatedValue), timestamp: new Date() },
     ]);
 
     const newAnswers = { ...answeredFields, [field.id]: validatedValue };
     setAnsweredFields(newAnswers);
-    setHistory((prev) => [...prev, field.id]);
-    const nextField = getNextField(newAnswers, form!.fields);
-    setActiveField(nextField);
 
-    if (!nextField) {
-      submitForm(newAnswers);
-    }
+    // Show typing indicator before next question
+    setShowTyping(true);
+
+    setTimeout(() => {
+      setShowTyping(false);
+      const nextField = getNextField(newAnswers, form!.fields);
+      setActiveField(nextField);
+
+      if (!nextField) {
+        submitForm(newAnswers);
+      }
+    }, 800);
   };
 
   const handleUserInputChange = async () => {
@@ -483,12 +595,13 @@ export default function ConversationalForm() {
     const currentInput = userInput;
     setUserInput("");
 
-    // --- AI CHAT MODE LOGIC ---
     if (isAiChatMode && aiChatStartIndex !== null) {
       setConversation((prev) => [
         ...prev,
-        { role: "user", content: currentInput },
+        { role: "user", content: currentInput, timestamp: new Date() },
       ]);
+
+      // setShowTyping(true);
       setIsSubmitting(true);
 
       try {
@@ -531,7 +644,6 @@ export default function ConversationalForm() {
           // Submit the summary as the field's answer and find the next field.
           const newAnswers = { ...answeredFields, [activeField.id]: summary };
           setAnsweredFields(newAnswers);
-          setHistory((prev) => [...prev, activeField.id]);
           const nextField = getNextField(newAnswers, form!.fields);
           setActiveField(nextField); // This will trigger the useEffect to exit AI mode.
 
@@ -540,6 +652,8 @@ export default function ConversationalForm() {
           }
         }
       } catch (error) {
+        setShowTyping(false);
+        setIsSubmitting(false);
         toast({
           title: "AI Error",
           description: "The assistant is unavailable.",
@@ -550,119 +664,194 @@ export default function ConversationalForm() {
         setIsAiChatMode(false); // Exit AI mode
       } finally {
         setIsSubmitting(false);
+        setTimeout(() => {
+          inputRef.current?.focus();
+        });
       }
     } else {
-      // --- STANDARD FORM LOGIC ---
       handleFieldSubmit(activeField, currentInput);
     }
   };
 
-  if (isLoading)
+  if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        Loading Form...
+      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center space-y-4">
+          <LoaderIcon className="w-8 h-8 animate-spin mx-auto text-blue-600" />
+          <p className="text-gray-600">Loading your form...</p>
+        </div>
       </div>
     );
-  if (!form)
+  }
+
+  if (!form) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        Form not found.
-      </div>
-    );
-  if (isSubmitted) {
-    return (
-      <div className="flex h-screen items-center justify-center text-center p-4">
-        <div>
-          <h2 className="text-2xl font-bold mb-4">
-            {"Thank you!"}
+      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-red-50 to-pink-100">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+            <span className="text-red-600 text-2xl">!</span>
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Form not found
           </h2>
-          <p>Your submission has been received.</p>
+          <p className="text-gray-600">
+            The form you're looking for doesn't exist.
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background text-foreground">
-      <header className="px-6 py-4 border-b shadow-sm">
-        <h1 className="text-2xl font-semibold">{form.title}</h1>
-        <p className="text-sm text-muted-foreground">{form.description}</p>
+    <div className="flex flex-col h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+      {/* Header */}
+      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 px-6 py-4 shadow-sm">
+        <div className="max-w-4xl mx-auto">
+          <img
+            src="https://thegatewaycorp.com/wp-content/themes/gatewaycorp/images/logo.svg"
+            alt="Company Logo"
+            className="h-8 w-auto"
+          />
+          <h1 className="text-2xl font-bold text-gray-900">{form.title}</h1>
+          <p className="text-gray-600 mt-1">{form.description}</p>
+        </div>
       </header>
 
-      <ScrollArea className="flex-1 p-6" ref={scrollAreaRef}>
-        <div className="space-y-4">
-          {conversation.map((msg, index) => (
-            <div
-              key={index}
-              className={`flex items-end space-x-3 ${
-                msg.role === "user" ? "justify-end" : "justify-start"
-              }`}
-            >
-              <div
-                className={`p-3 rounded-lg max-w-md ${
-                  msg.role === "user"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted"
-                }`}
-              >
-                <p className="text-sm" style={{ whiteSpace: "pre-wrap" }}>
-                  {msg.content}
-                </p>
-              </div>
-            </div>
-          ))}
+      {/* Chat Area */}
+      <div className="flex-1 overflow-hidden">
+        <div className="max-w-4xl mx-auto h-full flex flex-col">
+          <ScrollArea className="flex-1 px-6 py-6" ref={scrollAreaRef}>
+            <div className="space-y-6">
+              {conversation.map((msg, index) => (
+                <div
+                  key={index}
+                  className={cn(
+                    "flex items-end space-x-3 animate-in slide-in-from-bottom-2",
+                    msg.role === "user" ? "justify-end" : "justify-start"
+                  )}
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  {msg.role === "system" && (
+                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                      <BotIcon className="w-4 h-4 text-white" />
+                    </div>
+                  )}
 
-          {activeField && !isAiChatMode && (
-            <div className="flex items-end space-x-3 justify-start">
-              <div className="p-3 rounded-lg max-w-md bg-muted">
-                <p className="font-medium mb-2">{activeField.label}</p>
-                {!textInputTypes.includes(activeField.type) ? (
-                  <FieldRenderer
-                    field={activeField}
-                    onSubmit={(value) => handleFieldSubmit(activeField, value)}
+                  <div
+                    className={cn(
+                      "max-w-md px-4 py-3 rounded-2xl shadow-sm",
+                      msg.role === "user"
+                        ? "bg-blue-600 text-white rounded-br-md"
+                        : "bg-white text-gray-900 rounded-bl-md border border-gray-200"
+                    )}
+                  >
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                      {msg.content}
+                    </p>
+                  </div>
+
+                  {msg.role === "user" && (
+                    <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center flex-shrink-0">
+                      <UserIcon className="w-4 h-4 text-white" />
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {showTyping && <TypingIndicator />}
+
+              {activeField && !isAiChatMode && !showTyping && (
+                <div className="flex items-end space-x-3 justify-start animate-in slide-in-from-left-2">
+                  <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                    <BotIcon className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="bg-white rounded-2xl rounded-bl-md p-6 shadow-sm border border-gray-200 max-w-lg">
+                    <p className="font-medium mb-4 text-gray-900">
+                      {activeField.label}
+                    </p>
+                    {!textInputTypes.includes(activeField.type) ? (
+                      <FieldRenderer
+                        field={activeField}
+                        onSubmit={(value) =>
+                          handleFieldSubmit(activeField, value)
+                        }
+                      />
+                    ) : (
+                      <p className="text-sm text-gray-600">
+                        {activeField.placeholder ||
+                          "Please provide your answer below."}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {isSubmitted && (
+                <div className="flex justify-center animate-in zoom-in-50">
+                  <div className="bg-green-50 border border-green-200 rounded-2xl p-6 text-center max-w-md">
+                    <CheckCircleIcon className="w-12 h-12 text-green-600 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-green-900 mb-2">
+                      Submission Complete!
+                    </h3>
+                    <p className="text-green-700">
+                      Thank you for your time. Your responses have been
+                      recorded.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div ref={messagesEndRef} />
+            </div>
+          </ScrollArea>
+
+          {/* Input Area */}
+          {activeField && !isSubmitted && (
+            <div className="bg-white/80 backdrop-blur-sm border-t border-gray-200 px-6 py-4">
+              <div className="flex items-center space-x-3">
+                <div className="flex-1 relative">
+                  <Input
+                    value={userInput}
+                    onChange={(e) => setUserInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleUserInputChange();
+                      }
+                    }}
+                    placeholder={
+                      isAiChatMode
+                        ? "Continue the conversation..."
+                        : activeField.placeholder || "Type your answer..."
+                    }
+                    disabled={
+                      isSubmitting || !textInputTypes.includes(activeField.type)
+                    }
+                    className="text-base border-2 border-gray-200 focus:border-blue-500 pr-12 h-12 rounded-xl transition-all duration-200"
+                    autoFocus
+                    ref={inputRef}
                   />
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    {activeField.placeholder ||
-                      "Please provide your answer below."}
-                  </p>
-                )}
+                </div>
+                <Button
+                  onClick={handleUserInputChange}
+                  disabled={
+                    isSubmitting ||
+                    !textInputTypes.includes(activeField.type) ||
+                    !userInput.trim()
+                  }
+                  className="h-12 w-12 rounded-xl bg-blue-600 hover:bg-blue-700 transition-all duration-200 disabled:opacity-50"
+                >
+                  {isSubmitting ? (
+                    <LoaderIcon className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <SendIcon className="w-4 h-4" />
+                  )}
+                </Button>
               </div>
             </div>
           )}
         </div>
-      </ScrollArea>
-
-      <footer className="px-6 py-4 border-t bg-background">
-        {activeField && !isSubmitted && (
-          <div className="flex items-center space-x-2">
-            <Input
-              value={userInput}
-              onChange={(e) => setUserInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleUserInputChange();
-              }}
-              placeholder={
-                isAiChatMode
-                  ? "Chat with our assistant..."
-                  : "Type your answer..."
-              }
-              disabled={
-                isSubmitting || !textInputTypes.includes(activeField.type)
-              }
-              autoFocus
-            />
-            <Button
-              onClick={handleUserInputChange}
-              disabled={
-                isSubmitting || !textInputTypes.includes(activeField.type)
-              }
-            >
-              {isSubmitting ? "..." : "Send"}
-            </Button>
-          </div>
-        )}
-      </footer>
+      </div>
     </div>
   );
 }
