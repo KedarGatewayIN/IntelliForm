@@ -13,6 +13,7 @@ import FormPreview from "@/pages/form-preview";
 import FormAnalytics from "@/pages/form-analytics";
 import FormStepper from "@/pages/form-stepper";
 import ProtectedRoute from "@/components/layout/protected-route";
+import ConversationalForm from "./pages/conversation";
 
 function Router() {
   return (
@@ -45,6 +46,7 @@ function Router() {
         </ProtectedRoute>
       </Route>
       <Route path="/f/:id" component={FormStepper} />
+      <Route path="/f2/:id" component={ConversationalForm} />
       <Route component={NotFound} />
     </Switch>
   );

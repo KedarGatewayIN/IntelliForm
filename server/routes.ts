@@ -283,6 +283,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  
+  // AI conversation routes
+  app.post("/api/ai/summarize", async (req, res) => {
+    try {
+      const { conversation } = req.body;
+      const response = await aiService.summarize(conversation);
+      res.json({ response });
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "AI service unavailable" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
