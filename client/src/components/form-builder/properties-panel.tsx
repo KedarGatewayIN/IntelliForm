@@ -14,32 +14,42 @@ interface PropertiesPanelProps {
   onUpdateField: (updates: Partial<FormField>) => void;
 }
 
-export default function PropertiesPanel({ selectedField, onUpdateField }: PropertiesPanelProps) {
+export default function PropertiesPanel({
+  selectedField,
+  onUpdateField,
+}: PropertiesPanelProps) {
   if (!selectedField) {
     return (
       <div className="w-80 bg-white border-l border-gray-200 flex flex-col">
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Properties</h2>
-          <p className="text-sm text-gray-500 mt-1">Configure the selected element</p>
+          <p className="text-sm text-gray-500 mt-1">
+            Configure the selected element
+          </p>
         </div>
-        
+
         <div className="flex-1 flex items-center justify-center p-6">
           <div className="text-center text-gray-500">
             <MousePointerIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p className="font-medium">Select an element</p>
-            <p className="text-sm mt-1">Click on a form element to configure its properties</p>
+            <p className="text-sm mt-1">
+              Click on a form element to configure its properties
+            </p>
           </div>
         </div>
       </div>
     );
   }
 
-  const hasOptions = ["radio", "checkbox", "select"].includes(selectedField.type);
+  const hasOptions = ["radio", "checkbox", "select"].includes(
+    selectedField.type
+  );
+  const isMatrix = selectedField.type === "matrix";
 
   const addOption = () => {
     const options = selectedField.options || [];
     onUpdateField({
-      options: [...options, `Option ${options.length + 1}`]
+      options: [...options, `Option ${options.length + 1}`],
     });
   };
 
@@ -55,13 +65,49 @@ export default function PropertiesPanel({ selectedField, onUpdateField }: Proper
     onUpdateField({ options });
   };
 
+  // Matrix field functions
+  const addMatrixRow = () => {
+    const rows = selectedField.matrixRows || [];
+    onUpdateField({
+      matrixRows: [...rows, `Row ${rows.length + 1}`],
+    });
+  };
+  const updateMatrixRow = (index: number, value: string) => {
+    const rows = [...(selectedField.matrixRows || [])];
+    rows[index] = value;
+    onUpdateField({ matrixRows: rows });
+  };
+  const removeMatrixRow = (index: number) => {
+    const rows = [...(selectedField.matrixRows || [])];
+    rows.splice(index, 1);
+    onUpdateField({ matrixRows: rows });
+  };
+  const addMatrixColumn = () => {
+    const columns = selectedField.matrixColumns || [];
+    onUpdateField({
+      matrixColumns: [...columns, `${columns.length + 1}`],
+    });
+  };
+  const updateMatrixColumn = (index: number, value: string) => {
+    const columns = [...(selectedField.matrixColumns || [])];
+    columns[index] = value;
+    onUpdateField({ matrixColumns: columns });
+  };
+  const removeMatrixColumn = (index: number) => {
+    const columns = [...(selectedField.matrixColumns || [])];
+    columns.splice(index, 1);
+    onUpdateField({ matrixColumns: columns });
+  };
+
   return (
     <div className="w-80 bg-white border-l border-gray-200 flex flex-col">
       <div className="p-6 border-b border-gray-200">
         <h2 className="text-lg font-semibold text-gray-900">Properties</h2>
-        <p className="text-sm text-gray-500 mt-1">Configure the selected element</p>
+        <p className="text-sm text-gray-500 mt-1">
+          Configure the selected element
+        </p>
       </div>
-      
+
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
         {/* Basic Properties */}
         <Card>
@@ -79,13 +125,15 @@ export default function PropertiesPanel({ selectedField, onUpdateField }: Proper
               />
             </div>
 
-            {selectedField.type !== 'ai_conversation' && (
+            {selectedField.type !== "ai_conversation" && (
               <div className="space-y-2">
                 <Label htmlFor="field-placeholder">Placeholder Text</Label>
                 <Input
                   id="field-placeholder"
                   value={selectedField.placeholder || ""}
-                  onChange={(e) => onUpdateField({ placeholder: e.target.value })}
+                  onChange={(e) =>
+                    onUpdateField({ placeholder: e.target.value })
+                  }
                   placeholder="Enter placeholder text"
                 />
               </div>
@@ -94,7 +142,9 @@ export default function PropertiesPanel({ selectedField, onUpdateField }: Proper
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label>Required Field</Label>
-                <p className="text-xs text-gray-500">Users must fill this field</p>
+                <p className="text-xs text-gray-500">
+                  Users must fill this field
+                </p>
               </div>
               <Switch
                 checked={selectedField.required}
@@ -102,11 +152,13 @@ export default function PropertiesPanel({ selectedField, onUpdateField }: Proper
               />
             </div>
 
-            {selectedField.type === 'textarea' && (
+            {selectedField.type === "textarea" && (
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>Enable AI Assistance</Label>
-                  <p className="text-xs text-gray-500">Add conversational AI to this field</p>
+                  <p className="text-xs text-gray-500">
+                    Add conversational AI to this field
+                  </p>
                 </div>
                 <Switch
                   checked={selectedField.aiEnabled || false}
@@ -155,6 +207,82 @@ export default function PropertiesPanel({ selectedField, onUpdateField }: Proper
           </Card>
         )}
 
+        {/* Matrix configuration */}
+        {isMatrix && (
+          <>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm">Matrix Rows</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {(selectedField.matrixRows || []).map((row, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <Input
+                      value={row}
+                      onChange={(e) => updateMatrixRow(index, e.target.value)}
+                      placeholder={`Row ${index + 1}`}
+                      className="flex-1"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeMatrixRow(index)}
+                      className="text-gray-400 hover:text-red-500"
+                    >
+                      <XIcon className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={addMatrixRow}
+                  className="w-full"
+                >
+                  <PlusIcon className="h-4 w-4 mr-2" />
+                  Add Row
+                </Button>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm">Matrix Columns</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {(selectedField.matrixColumns || []).map((column, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <Input
+                      value={column}
+                      onChange={(e) =>
+                        updateMatrixColumn(index, e.target.value)
+                      }
+                      placeholder={`Column ${index + 1}`}
+                      className="flex-1"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeMatrixColumn(index)}
+                      className="text-gray-400 hover:text-red-500"
+                    >
+                      <XIcon className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={addMatrixColumn}
+                  className="w-full"
+                >
+                  <PlusIcon className="h-4 w-4 mr-2" />
+                  Add Column
+                </Button>
+              </CardContent>
+            </Card>
+          </>
+        )}
+
         {/* Field Type Badge */}
         <Card>
           <CardHeader className="pb-3">
@@ -164,10 +292,13 @@ export default function PropertiesPanel({ selectedField, onUpdateField }: Proper
             <div className="space-y-2">
               <Label>Field Type</Label>
               <Badge variant="secondary" className="w-fit">
-                {selectedField.type.replace('_', ' ').toUpperCase()}
+                {selectedField.type.replace("_", " ").toUpperCase()}
               </Badge>
               {selectedField.aiEnabled && (
-                <Badge variant="outline" className="w-fit ml-2 border-purple-200 text-purple-700">
+                <Badge
+                  variant="outline"
+                  className="w-fit ml-2 border-purple-200 text-purple-700"
+                >
                   AI ENABLED
                 </Badge>
               )}

@@ -79,6 +79,8 @@ export interface FormField {
   validation?: ValidationRule[];
   aiEnabled?: boolean;
   conditional?: ConditionalLogic;
+  matrixRows?: string[];
+  matrixColumns?: string[];
 }
 
 export interface FormSettings {
@@ -126,6 +128,7 @@ export type FormFieldType =
   | 'file'
   | 'rating'
   | 'slider'
+  | 'matrix'
   | 'ai_conversation';
 
 // Zod schemas

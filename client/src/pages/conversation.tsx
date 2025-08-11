@@ -376,6 +376,87 @@ const FieldRenderer: React.FC<{
         </div>
       );
 
+    case "matrix":
+      const matrixRows = field.matrixRows || ["Row 1", "Row 2", "Row 3"];
+      const matrixColumns = field.matrixColumns || ["1", "2", "3", "4", "5"];
+      const matrixValue = (localValue as Record<string, string>) || {};
+
+      return (
+        <div className="space-y-4">
+          <div className="border border-gray-200 rounded-lg overflow-x-auto bg-white">
+            <table className="w-full text-sm">
+              <thead>
+                <tr>
+                  <th className="text-left p-4 border-b border-gray-200 bg-gray-50"></th>
+                  {matrixColumns.map((col, index) => (
+                    <th
+                      key={index}
+                      className="text-center p-4 border-b border-gray-200 font-medium text-gray-700 min-w-20 bg-gray-50"
+                    >
+                      {col}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {matrixRows.map((row, rowIndex) => (
+                  <tr
+                    key={rowIndex}
+                    className="border-b border-gray-100 last:border-b-0"
+                  >
+                    {/* Row label */}
+                    <td className="p-4 font-medium text-gray-700 bg-gray-50 min-w-48 border-r border-gray-200">
+                      {row}
+                    </td>
+
+                    {/* One radio per column */}
+                    <RadioGroup
+                      value={matrixValue[`${rowIndex}`] || ""}
+                      onValueChange={(val) => {
+                        const newValue = {
+                          ...matrixValue,
+                          [`${rowIndex}`]: val,
+                        };
+                        handleChange(newValue);
+                      }}
+                      className="contents"
+                    >
+                      {matrixColumns.map((_, colIndex) => (
+                        <td key={colIndex} className="text-center p-4">
+                          <div className="flex items-center justify-center">
+                            <RadioGroupItem
+                              value={`${colIndex + 1}`}
+                              id={`${field.id}-${rowIndex}-${colIndex}`}
+                              className="w-5 h-5 cursor-pointer"
+                            />
+                          </div>
+                        </td>
+                      ))}
+                    </RadioGroup>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {validationError && (
+              <p className="text-red-500 text-sm animate-in slide-in-from-top-1">
+                {validationError}
+              </p>
+            )}
+          </div>
+
+          <div className="w-20 ml-auto">
+            <Button
+              onClick={handleSubmit}
+              className="w-full bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
+              disabled={!!validationError}
+            >
+              Submit
+            </Button>
+          </div>
+        </div>
+      );
+
     default:
       return null;
   }
@@ -636,10 +717,10 @@ export default function ConversationalForm() {
             (await summaryRes.json()).response || "User provided feedback.";
 
           // Replace the detailed chat with the single, summarized answer.
-          setConversation((prev) => {
-            const cleanedConversation = prev.slice(0, aiChatStartIndex + 1); // Keep up to the initial question
-            return [...cleanedConversation, { role: "user", content: summary }];
-          });
+          // setConversation((prev) => {
+          //   const cleanedConversation = prev.slice(0, aiChatStartIndex + 1); // Keep up to the initial question
+          //   return [...cleanedConversation, { role: "user", content: summary }];
+          // });
 
           // Submit the summary as the field's answer and find the next field.
           const newAnswers = { ...answeredFields, [activeField.id]: summary };

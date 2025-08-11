@@ -1,5 +1,5 @@
 import { Input } from "@/components/ui/input";
-import { SearchIcon, TypeIcon, AlignLeftIcon, MailIcon, HashIcon, CircleDotIcon, CheckSquareIcon, ChevronDownIcon, CalendarIcon, StarIcon, UploadIcon, BotIcon } from "lucide-react";
+import { SearchIcon, TypeIcon, AlignLeftIcon, MailIcon, HashIcon, CircleDotIcon, CheckSquareIcon, ChevronDownIcon, CalendarIcon, StarIcon, UploadIcon, BotIcon, TableIcon } from "lucide-react";
 
 interface ElementSidebarProps {
   onAddField: (fieldType: string) => void;
@@ -26,6 +26,7 @@ const formElements = [
   {
     category: "Advanced Elements",
     items: [
+      { type: "matrix", label: "Matrix/Table", icon: TableIcon },
       { type: "ai_conversation", label: "AI Conversation", icon: BotIcon, special: true },
       { type: "date", label: "Date Picker", icon: CalendarIcon },
       { type: "rating", label: "Rating Scale", icon: StarIcon },

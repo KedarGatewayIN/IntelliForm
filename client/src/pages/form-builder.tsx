@@ -114,6 +114,10 @@ export default function FormBuilder() {
         message: 'Please enter a valid email address',
         value: '',
       }] : [],
+      ...(fieldType === 'matrix' && {
+        matrixRows: ["Row 1", "Row 2", "Row 3"],
+        matrixColumns: ["1", "2", "3", "4", "5"]
+      })
     };
 
     setForm(prev => ({
