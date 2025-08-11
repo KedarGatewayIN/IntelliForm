@@ -489,7 +489,7 @@ export default function ConversationalForm() {
   const [form, setForm] = useState<Form | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [conversation, setConversation] = useState<
-    { role: "system" | "user"; content: string; timestamp?: Date }[]
+    { role: "system" | "user"; content: string; timestamp: Date }[]
   >([]);
   const [answeredFields, setAnsweredFields] = useState<Record<string, any>>({});
   const [activeField, setActiveField] = useState<FormField | null>(null);
@@ -503,6 +503,17 @@ export default function ConversationalForm() {
   const [startTime] = useState(Date.now());
   const [isAiChatMode, setIsAiChatMode] = useState(false);
   const [aiChatStartIndex, setAiChatStartIndex] = useState<number | null>(null);
+  const [aiConversation, setAiConversation] = useState<
+    {
+      submissionId: string;
+      fieldId: string;
+      messages: {
+        role: "user" | "assistant";
+        content: string;
+        timestamp: string;
+      }[];
+    }[]
+  >([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const textInputTypes = [
@@ -599,10 +610,29 @@ export default function ConversationalForm() {
 
     try {
       const timeTaken = Math.floor((Date.now() - startTime) / 1000);
-      await apiRequest("POST", `/api/public/forms/${form!.id}/submit`, {
-        data: finalAnswers,
-        timeTaken,
-      });
+      const submission = await apiRequest(
+        "POST",
+        `/api/public/forms/${form!.id}/submit`,
+        {
+          data: finalAnswers,
+          timeTaken,
+        }
+      );
+      const response = await submission.json();
+
+      await Promise.all(
+        aiConversation.map((conv) => {
+          apiRequest("POST", "/api/ai/saveAIConversation", {
+            submissionId: response.submissionId,
+            fieldId: conv.fieldId,
+            messages: conv.messages.map((msg) => ({
+              role: msg.role,
+              content: msg.content,
+              timestamp: msg.timestamp,
+            })),
+          });
+        })
+      );
 
       setTimeout(() => {
         setShowTyping(false);
@@ -649,7 +679,7 @@ export default function ConversationalForm() {
     // Add user response
     setConversation((prev) => [
       ...prev,
-      { role: "system", content: field.label },
+      { role: "system", content: field.label, timestamp: new Date() },
       { role: "user", content: String(validatedValue), timestamp: new Date() },
     ]);
 
@@ -693,7 +723,7 @@ export default function ConversationalForm() {
 
         setConversation((prev) => [
           ...prev,
-          { role: "system", content: result.content },
+          { role: "system", content: result.content, timestamp: new Date() },
         ]);
 
         if (result.conversation_finished) {
@@ -701,8 +731,12 @@ export default function ConversationalForm() {
           const chatToSummarize = conversation
             .slice(aiChatStartIndex + 1) // Get messages after the initial question
             .concat([
-              { role: "user", content: currentInput },
-              { role: "system", content: result.content },
+              { role: "user", content: currentInput, timestamp: new Date() },
+              {
+                role: "system",
+                content: result.content,
+                timestamp: new Date(),
+              },
             ])
             .map(
               (msg) =>
@@ -721,6 +755,33 @@ export default function ConversationalForm() {
           //   const cleanedConversation = prev.slice(0, aiChatStartIndex + 1); // Keep up to the initial question
           //   return [...cleanedConversation, { role: "user", content: summary }];
           // });
+
+          setAiConversation((prev) => [
+            ...prev,
+            {
+              submissionId: form!.id,
+              fieldId: activeField.id,
+              messages: conversation
+                .slice(aiChatStartIndex + 1)
+                .concat([
+                  {
+                    role: "user",
+                    content: currentInput,
+                    timestamp: new Date(),
+                  },
+                  {
+                    role: "system",
+                    content: result.content,
+                    timestamp: new Date(),
+                  },
+                ])
+                .map((msg) => ({
+                  role: msg.role === 'system' ? 'assistant' : 'user',
+                  content: msg.content,
+                  timestamp: msg.timestamp!.toISOString(),
+                })),
+            },
+          ]);
 
           // Submit the summary as the field's answer and find the next field.
           const newAnswers = { ...answeredFields, [activeField.id]: summary };

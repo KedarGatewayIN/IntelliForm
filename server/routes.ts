@@ -309,6 +309,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/ai/saveAIConversation", async (req, res) => {
+    try {
+      const { submissionId, fieldId, messages } = req.body as {
+        submissionId: string,
+        fieldId: string,
+        messages: {
+          role: 'user' | 'assistant';
+          content: string;
+          timestamp: string;
+        }[],
+      };
+      
+      if (!messages || !fieldId || !submissionId) {
+        return res.status(400).json({ message: "Messages, submissionId and fieldId are required" });
+      }
+      
+      const response = await storage.saveAIConversation({
+        fieldId,
+        submissionId,
+        messages: messages.map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+          timestamp: msg.timestamp,
+        })),
+      });
+      
+      res.json({ response });
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "AI service unavailable" });
+    }
+  });
   
   // AI conversation routes
   app.post("/api/ai/summarize", async (req, res) => {
