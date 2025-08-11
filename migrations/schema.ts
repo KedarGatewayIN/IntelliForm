@@ -1,22 +1,7 @@
-import { pgTable, foreignKey, uuid, json, timestamp, integer, text, unique, boolean } from "drizzle-orm/pg-core"
+import { pgTable, foreignKey, uuid, text, json, timestamp, unique, boolean, integer } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
 
-
-export const submissions = pgTable("submissions", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	formId: uuid("form_id").notNull(),
-	data: json().notNull(),
-	completedAt: timestamp("completed_at", { mode: 'string' }).defaultNow().notNull(),
-	timeTaken: integer("time_taken"),
-	ipAddress: text("ip_address"),
-}, (table) => [
-	foreignKey({
-			columns: [table.formId],
-			foreignColumns: [forms.id],
-			name: "submissions_form_id_forms_id_fk"
-		}),
-]);
 
 export const aiConversations = pgTable("ai_conversations", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
@@ -58,5 +43,22 @@ export const forms = pgTable("forms", {
 			columns: [table.userId],
 			foreignColumns: [users.id],
 			name: "forms_user_id_users_id_fk"
+		}),
+]);
+
+export const submissions = pgTable("submissions", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	formId: uuid("form_id").notNull(),
+	data: json().notNull(),
+	completedAt: timestamp("completed_at", { mode: 'string' }).defaultNow().notNull(),
+	timeTaken: integer("time_taken"),
+	ipAddress: text("ip_address"),
+	aiProblem: text("ai_problem"),
+	aiActionNeeded: boolean("ai_action_needed").default(false).notNull(),
+}, (table) => [
+	foreignKey({
+			columns: [table.formId],
+			foreignColumns: [forms.id],
+			name: "submissions_form_id_forms_id_fk"
 		}),
 ]);

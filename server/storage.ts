@@ -14,6 +14,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, count, avg, sql } from "drizzle-orm";
+import { aiService } from "./services/ai";
 
 export interface IStorage {
   // User methods
@@ -126,11 +127,41 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSubmission(submission: InsertSubmission): Promise<Submission> {
+   const form = await this.getForm(submission.formId);
+    
+    const context = Object.entries(submission.data)?.map(([key, value]) => {
+      const field = form?.fields.find(f => f.id === key);
+      return field ? `${field.label}: ${value}` : `${key}: ${value}`;
+    }).join("\n") || "";
+
+    const aiResponse = await aiService.getSentimentAnalysis(context);
+    const sentiment = JSON.parse(aiResponse) as unknown as {
+      action: 'action_needed' | 'no_action_needed';
+      reason?: string;
+    };
+
     const [newSubmission] = await db
       .insert(submissions)
-      .values(submission)
+      .values({
+        formId: submission.formId,
+        data: submission.data,
+        timeTaken: submission.timeTaken,
+        ipAddress: submission.ipAddress,
+        aiActionNeeded: sentiment.action === 'action_needed',
+        aiProblem: sentiment?.reason,
+      })
       .returning();
+
     return newSubmission;
+  }
+  
+  async updateSubmission(submission_id: string, submission: Partial<InsertSubmission>): Promise<Submission> {
+    const [updatedSubmission] = await db
+      .update(submissions)
+      .set({ ...submission })
+      .where(eq(forms.id, submission_id))
+      .returning();
+    return updatedSubmission;
   }
 
   async getFormSubmissions(formId: string): Promise<Submission[]> {
@@ -227,6 +258,7 @@ export class DatabaseStorage implements IStorage {
       .insert(aiConversations)
       .values(conversation)
       .returning();
+
     return newConversation;
   }
 }
