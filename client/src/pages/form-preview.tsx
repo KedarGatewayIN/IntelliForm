@@ -8,19 +8,55 @@ import { ArrowLeftIcon, ExternalLinkIcon, ShareIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { Form } from "@shared/schema";
+import { useEffect, useState } from "react";
 
-export default function FormPreview() {
+export default function FormPreview({
+  showHeader = true,
+  answers = {},
+}: {
+  showHeader?: boolean;
+  answers?: Record<string, any>;
+}) {
   const params = useParams();
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { data: form, isLoading } = useQuery<Form>({
-    queryKey: ["/api/forms", params.id],
-    enabled: !!params.id,
+  const [state, setState] = useState<{
+    loading: boolean;
+    form: Form | null;
+    submission: any | null;
+  }>({
+    loading: true,
+    form: null,
+    submission: null,
   });
-  const { data: submission, isLoading: loading } = useQuery({
-    queryKey: ["/api/forms", params.id, "submission", params.sid],
-    enabled: !!params.sid,
-  });
+
+  useEffect(() => {
+    (async () => {
+      const form = await fetch(`/api/forms/${params.id}`);
+      let submission = answers;
+      if (params.sid) {
+        const response = await fetch(
+          `/api/forms/${params.id}/submission/${params.sid}`
+        );
+        submission = (await response.json())[0].data;
+      }
+      setState({
+        loading: false,
+        form: await form.json(),
+        submission,
+      });
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (answers && Object.keys(answers).length > 0) {
+      setState((prev) => ({
+        ...prev,
+        submission: answers,
+      }));
+    }
+  }, [answers]);
+
   const shareForm = () => {
     const formUrl = `${window.location.origin}/f/${params.id}`;
     navigator.clipboard.writeText(formUrl);
@@ -30,7 +66,7 @@ export default function FormPreview() {
     });
   };
 
-  if (isLoading || loading) {
+  if (state.loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
@@ -41,7 +77,7 @@ export default function FormPreview() {
     );
   }
 
-  if (!form) {
+  if (!state.form) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
@@ -63,36 +99,40 @@ export default function FormPreview() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      {/* <Navbar /> */}
 
       <div className="max-w-4xl mx-auto pt-8 px-4">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate(`/forms/${params.id}/edit`)}
-            >
-              <ArrowLeftIcon className="h-4 w-4" />
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{form.title}</h1>
-              <p className="text-gray-600">Form Preview</p>
+        {showHeader ? (
+          <header className="flex items-center justify-between mb-8">
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate(`/forms/${params.id}/edit`)}
+              >
+                <ArrowLeftIcon className="h-4 w-4" />
+              </Button>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  {state.form.title}
+                </h1>
+                <p className="text-gray-600">Form Preview</p>
+              </div>
             </div>
-          </div>
 
-          <div className="flex space-x-3">
-            <Button variant="outline" onClick={shareForm}>
-              <ShareIcon className="h-4 w-4 mr-2" />
-              Share
-            </Button>
-            <Button onClick={() => window.open(`/f/${params.id}`, "_blank")}>
-              <ExternalLinkIcon className="h-4 w-4 mr-2" />
-              Open Live Form
-            </Button>
-          </div>
-        </div>
+            <div className="flex space-x-3">
+              <Button variant="outline" onClick={shareForm}>
+                <ShareIcon className="h-4 w-4 mr-2" />
+                Share
+              </Button>
+              <Button onClick={() => window.open(`/f/${params.id}`, "_blank")}>
+                <ExternalLinkIcon className="h-4 w-4 mr-2" />
+                Open Live Form
+              </Button>
+            </div>
+          </header>
+        ) : null}
 
         {/* Form Preview */}
         <Card className="shadow-lg">
@@ -100,16 +140,18 @@ export default function FormPreview() {
             {/* Form Header */}
             <div className="mb-8">
               <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                {form.title}
+                {state.form.title}
               </h2>
-              {form.description && (
-                <p className="text-gray-600 text-lg">{form.description}</p>
+              {state.form.description && (
+                <p className="text-gray-600 text-lg">
+                  {state.form.description}
+                </p>
               )}
             </div>
 
             {/* Form Fields */}
             <div className="space-y-8">
-              {form.fields.map((field, index) => (
+              {state.form.fields.map((field, index) => (
                 <div
                   key={field.id}
                   className="border-b border-gray-200 pb-8 last:border-b-0"
@@ -121,7 +163,7 @@ export default function FormPreview() {
                   </div>
                   <QuestionRenderer
                     field={field}
-                    value={submission?.[0]?.data[field.id] || ""}
+                    value={state.submission[field.id] || ""}
                     onChange={() => {}} // Preview mode - no interaction
                   />
                 </div>

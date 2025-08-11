@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
-import AIConversation from "./ai-conversation";
 import type { FormField, ValidationRule } from "@shared/schema";
 import { CalendarIcon, StarIcon, UploadIcon } from "lucide-react";
 import { format } from "date-fns";
