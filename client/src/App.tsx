@@ -11,9 +11,9 @@ import Dashboard from "@/pages/dashboard";
 import FormBuilder from "@/pages/form-builder";
 import FormPreview from "@/pages/form-preview";
 import FormAnalytics from "@/pages/form-analytics";
-import FormStepper from "@/pages/form-stepper";
 import ProtectedRoute from "@/components/layout/protected-route";
 import ConversationalForm from "./pages/conversation";
+import AnalyticsPage from "./pages/analytics";
 
 function Router() {
   return (
@@ -23,6 +23,11 @@ function Router() {
       <Route path="/">
         <ProtectedRoute>
           <Dashboard />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/analytics">
+        <ProtectedRoute>
+          <AnalyticsPage />
         </ProtectedRoute>
       </Route>
       <Route path="/forms/new">
@@ -45,8 +50,8 @@ function Router() {
           <FormAnalytics />
         </ProtectedRoute>
       </Route>
-      <Route path="/f/:id" component={FormStepper} />
-      <Route path="/f2/:id" component={ConversationalForm} />
+      <Route path="/forms/:id/responses/:sid" component={FormPreview} />
+      <Route path="/f/:id" component={ConversationalForm} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -6,13 +6,21 @@ import Navbar from "@/components/layout/navbar";
 import QuestionRenderer from "@/components/form-stepper/question-renderer";
 import { ArrowLeftIcon, ExternalLinkIcon, ShareIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+import { Form } from "@shared/schema";
 
 export default function FormPreview() {
   const params = useParams();
   const [, navigate] = useLocation();
-  const { data: form, isLoading } = useForm(params.id);
   const { toast } = useToast();
-
+  const { data: form, isLoading } = useQuery<Form>({
+    queryKey: ["/api/forms", params.id],
+    enabled: !!params.id,
+  });
+  const { data: submission, isLoading: loading } = useQuery({
+    queryKey: ["/api/forms", params.id, "submission", params.sid],
+    enabled: !!params.sid,
+  });
   const shareForm = () => {
     const formUrl = `${window.location.origin}/f/${params.id}`;
     navigator.clipboard.writeText(formUrl);
@@ -22,7 +30,7 @@ export default function FormPreview() {
     });
   };
 
-  if (isLoading) {
+  if (isLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
@@ -40,8 +48,12 @@ export default function FormPreview() {
         <div className="max-w-2xl mx-auto pt-20 px-4">
           <Card>
             <CardContent className="p-8 text-center">
-              <h1 className="text-2xl font-bold text-gray-900 mb-4">Form Not Found</h1>
-              <p className="text-gray-600">The form you're looking for doesn't exist.</p>
+              <h1 className="text-2xl font-bold text-gray-900 mb-4">
+                Form Not Found
+              </h1>
+              <p className="text-gray-600">
+                The form you're looking for doesn't exist.
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -52,7 +64,7 @@ export default function FormPreview() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
+
       <div className="max-w-4xl mx-auto pt-8 px-4">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -69,13 +81,13 @@ export default function FormPreview() {
               <p className="text-gray-600">Form Preview</p>
             </div>
           </div>
-          
+
           <div className="flex space-x-3">
             <Button variant="outline" onClick={shareForm}>
               <ShareIcon className="h-4 w-4 mr-2" />
               Share
             </Button>
-            <Button onClick={() => window.open(`/f/${params.id}`, '_blank')}>
+            <Button onClick={() => window.open(`/f/${params.id}`, "_blank")}>
               <ExternalLinkIcon className="h-4 w-4 mr-2" />
               Open Live Form
             </Button>
@@ -87,7 +99,9 @@ export default function FormPreview() {
           <CardContent className="p-8">
             {/* Form Header */}
             <div className="mb-8">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">{form.title}</h2>
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                {form.title}
+              </h2>
               {form.description && (
                 <p className="text-gray-600 text-lg">{form.description}</p>
               )}
@@ -96,13 +110,18 @@ export default function FormPreview() {
             {/* Form Fields */}
             <div className="space-y-8">
               {form.fields.map((field, index) => (
-                <div key={field.id} className="border-b border-gray-200 pb-8 last:border-b-0">
+                <div
+                  key={field.id}
+                  className="border-b border-gray-200 pb-8 last:border-b-0"
+                >
                   <div className="mb-4">
-                    <span className="text-sm text-gray-500 font-medium">Question {index + 1}</span>
+                    <span className="text-sm text-gray-500 font-medium">
+                      Question {index + 1}
+                    </span>
                   </div>
                   <QuestionRenderer
                     field={field}
-                    value=""
+                    value={submission?.[0]?.data[field.id] || ""}
                     onChange={() => {}} // Preview mode - no interaction
                   />
                 </div>
@@ -112,8 +131,8 @@ export default function FormPreview() {
             {/* Preview Notice */}
             <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-blue-800 text-sm">
-                <strong>Preview Mode:</strong> This is how your form will appear to respondents. 
-                Fields are not interactive in preview mode.
+                <strong>Preview Mode:</strong> This is how your form will appear
+                to respondents. Fields are not interactive in preview mode.
               </p>
             </div>
           </CardContent>

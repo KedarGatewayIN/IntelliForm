@@ -17,9 +17,9 @@ interface QuestionRendererProps {
   autofocus: boolean;
   field: FormField;
   value: any;
-  onChange: (value: any) => void;
-  previousStep: () => void;
-  nextStep: () => void;
+  onChange?: (value: any) => void;
+  previousStep?: () => void;
+  nextStep?: () => void;
 }
 
 export default function QuestionRenderer({ autofocus, field, value, onChange, previousStep, nextStep }: QuestionRendererProps) {
@@ -131,9 +131,9 @@ export default function QuestionRenderer({ autofocus, field, value, onChange, pr
         );
 
       case "textarea":
-        if (field.aiEnabled) {
-          return <AIConversation field={field} value={value} onChange={onChange} />;
-        }
+        // if (field.aiEnabled) {
+        //   return <AIConversation field={field} value={value} onChange={onChange} />;
+        // }
         return (
           <div>
             <Textarea

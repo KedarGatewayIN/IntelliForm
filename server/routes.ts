@@ -151,7 +151,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied" });
       }
       
-      const updatedForm = await storage.updateForm(req.params.id, req.body);
+      const updatedForm = await storage.updateForm(req.params.id, {
+        id: req.body.id,
+        title: req.body.title,
+        description: req.body.description,
+        userId: req.body.userId,
+        fields: req.body.fields,
+        settings: req.body.settings,
+        isPublished: req.body.isPublished,
+      });
       res.json(updatedForm);
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : "Failed to update form" });
@@ -233,6 +241,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to get submissions" });
     }
   });
+  app.get("/api/forms/:id/submission/:sid", auth, async (req, res) => {
+    try {
+      const form = await storage.getForm(req.params.id);
+      if (!form) {
+        return res.status(404).json({ message: "Form not found" });
+      }
+      
+      // Check ownership
+      if (form.userId !== req.userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const submissions = await storage.getFormSubmission(req.params.sid);
+      res.json(submissions);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get submissions" });
+    }
+  });
 
   app.get("/api/forms/:id/analytics", auth, async (req, res) => {
     try {
@@ -258,9 +284,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { message, fieldId, submissionId } = req.body;
       
-      if (!message || !fieldId) {
-        return res.status(400).json({ message: "Message and fieldId are required" });
-      }
+      // if (!message || !fieldId) {
+      //   return res.status(400).json({ message: "Message and fieldId are required" });
+      // }
       
       // Get AI response
       const response = await aiService.chat(message);

@@ -295,7 +295,7 @@ export default function FormAnalytics() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" onClick={() => navigate(`/forms/${params.id}/responses/${submission.id}`)}>
                           View
                         </Button>
                       </TableCell>

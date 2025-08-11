@@ -10,7 +10,7 @@ import PropertiesPanel from "@/components/form-builder/properties-panel";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Form, FormField } from "@shared/schema";
-import { ArrowLeftIcon, EyeIcon, SaveIcon, ShareIcon } from "lucide-react";
+import { ArrowLeftIcon, EyeIcon, SaveIcon, ShareIcon, Trash } from "lucide-react";
 
 export default function FormBuilder() {
   const params = useParams();
@@ -97,6 +97,24 @@ export default function FormBuilder() {
       toast({
         title: "Error",
         description: "Failed to publish form",
+        variant: "destructive",
+      });
+    }
+  };
+
+  
+  const deleteForm = async () => {
+    try {
+      await apiRequest("DELETE", `/api/forms/${params.id}`);
+      toast({
+        title: "Form Deleted",
+        description: "Your form is deleted successfully",
+      });
+      navigate("/");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete form",
         variant: "destructive",
       });
     }
@@ -222,6 +240,15 @@ export default function FormBuilder() {
               >
                 <ShareIcon className="h-4 w-4 mr-2" />
                 Publish
+              </Button>
+              <Button
+                variant='destructive'
+                size="sm"
+                onClick={deleteForm}
+                disabled={!form.fields?.length || !isEditing}
+              >
+                <Trash className="h-4 w-4 mr-2" />
+                Delete
               </Button>
             </div>
           </div>

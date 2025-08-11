@@ -157,6 +157,15 @@ export class DatabaseStorage implements IStorage {
 
     return submissionsWithAI;
   }
+  
+  async getFormSubmission(submissionId: string): Promise<Submission[]> {
+    const formSubmissions = await db
+      .select()
+      .from(submissions)
+      .where(eq(submissions.id, submissionId));
+
+    return formSubmissions;
+  }
 
   async getFormAnalytics(formId: string): Promise<any> {
     // Get total responses
