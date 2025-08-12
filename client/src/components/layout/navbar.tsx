@@ -7,10 +7,25 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/use-auth";
-import { PlusIcon, ChevronDownIcon } from "lucide-react";
+import {
+  PlusIcon,
+  ChevronDownIcon,
+  LayoutDashboard,
+  Clock,
+  BarChart3,
+} from "lucide-react";
+import { usePathname } from "wouter/use-browser-location";
+import clsx from "clsx";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const pathname = usePathname();
+
+  const navItems = [
+    { href: "/", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/recent", label: "Recent", icon: Clock },
+    { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  ];
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
@@ -19,25 +34,44 @@ export default function Navbar() {
           <div className="flex items-center">
             <Link href="/" className="flex items-center">
               <div className="w-8 h-8 bg-gradient-to-r from-primary to-secondary rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <svg
+                  className="w-5 h-5 text-white"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
                   <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
                 </svg>
               </div>
-              <span className="ml-3 text-xl font-bold text-gray-900">IntelliForm</span>
+              <span className="ml-3 text-xl font-bold text-gray-900">
+                IntelliForm
+              </span>
             </Link>
             <nav className="hidden md:ml-10 md:flex space-x-8">
-              <Link href="/" className="text-primary font-medium">
-                Dashboard
-              </Link>
-              <Link href="/analytics" className="text-gray-500 hover:text-gray-900 transition-colors">
-                Analytics
-              </Link>
-              <Link href="/templates" className="text-gray-500 hover:text-gray-900 transition-colors">
-                Templates
-              </Link>
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive =
+                  pathname === item.href ||
+                  pathname.startsWith(item.href + "/");
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={clsx(
+                      "flex items-center gap-2 font-medium transition-colors",
+                      isActive
+                        ? "text-primary"
+                        : "text-gray-500 hover:text-gray-900"
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.label}
+                  </Link>
+                );
+              })}
             </nav>
           </div>
-          
+
           <div className="flex items-center space-x-4">
             <Link href="/forms/new">
               <Button>
@@ -45,7 +79,7 @@ export default function Navbar() {
                 New Form
               </Button>
             </Link>
-            
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center space-x-2">
@@ -54,14 +88,14 @@ export default function Navbar() {
                       {user?.username?.charAt(0)?.toUpperCase()}
                     </span>
                   </div>
-                  <span className="hidden sm:block text-sm font-medium">{user?.username}</span>
+                  <span className="hidden sm:block text-sm font-medium">
+                    {user?.username}
+                  </span>
                   <ChevronDownIcon className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={logout}>
-                  Sign Out
-                </DropdownMenuItem>
+                <DropdownMenuItem onClick={logout}>Sign Out</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

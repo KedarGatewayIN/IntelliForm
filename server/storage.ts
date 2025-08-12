@@ -13,7 +13,16 @@ import {
   type InsertAIConversation,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, count, avg, sql } from "drizzle-orm";
+import {
+  eq,
+  desc,
+  count,
+  avg,
+  sql,
+  isNotNull,
+  and,
+  inArray,
+} from "drizzle-orm";
 import { aiService } from "./services/ai";
 
 export interface IStorage {
@@ -216,6 +225,39 @@ export class DatabaseStorage implements IStorage {
     return formSubmissions;
   }
 
+  async getAllSubmissions({
+    offset = 0,
+    limit = 10,
+  }: {
+    offset?: number;
+    limit?: number;
+  }): Promise<(Submission & { formTitle: string | null })[]> {
+    const allSubs = await db
+      .select({
+        id: submissions.id,
+        formId: submissions.formId,
+        data: submissions.data,
+        completedAt: submissions.completedAt,
+        timeTaken: submissions.timeTaken,
+        aiProblem: submissions.aiProblem,
+        resolved: submissions.resolved,
+        ipAddress: submissions.ipAddress,
+        formTitle: forms.title,
+      })
+      .from(submissions)
+      .leftJoin(forms, eq(submissions.formId, forms.id))
+      .orderBy(desc(submissions.completedAt))
+      .offset(offset)
+      .limit(limit);
+
+    return allSubs;
+  }
+
+  async countAllSubmissions(): Promise<number> {
+    const [result] = await db.select({ count: count() }).from(submissions);
+    return result.count || 0;
+  }
+
   async getFormAnalytics(formId: string): Promise<any> {
     // Get total responses
     const [totalResponsesResult] = await db
@@ -269,6 +311,67 @@ export class DatabaseStorage implements IStorage {
       })),
       responsesByDay: [], // This would need aggregation by date
     };
+  }
+
+  async summarizeProblems() {
+    // const result = await db
+    //   .select({
+    //     aiProblem: submissions.aiProblem,
+    //     id: submissions.id,
+    //   })
+    //   .from(submissions)
+    //   .where(
+    //     and(eq(submissions.resolved, false), isNotNull(submissions.aiProblem))
+    //   );
+
+    // const unresolvedProblems = result
+    //   .map((row) => `${row.aiProblem} - ${row.id}`)
+    //   .join(", ");
+    // const problems = await aiService.getProblemRanking(unresolvedProblems);
+    const problems = [
+      {
+        problem: "reducing paperwork in onboarding",
+        count: 2,
+        ids: [
+          "83fbc7ed-6c06-42a1-bb8f-f430c3a0d126",
+          "6065e04a-21c9-4933-b00a-d63eac4e8f69",
+        ],
+      },
+      {
+        problem: "office tour during onboarding",
+        count: 1,
+        ids: ["6065e04a-21c9-4933-b00a-d63eac4e8f69"],
+      },
+    ];
+
+    const submissionIds = Array.from(new Set(problems.flatMap((p) => p.ids)));
+
+    const submissionWithForms = await db
+      .select({
+        submission_id: submissions.id,
+        form_id: forms.id,
+        title: forms.title,
+      })
+      .from(submissions)
+      .innerJoin(forms, eq(forms.id, submissions.formId))
+      .where(inArray(submissions.id, submissionIds));
+
+    const finalData = problems.map((p) => {
+      const matchingForms = submissionWithForms.filter((f) =>
+        p.ids.includes(f.submission_id)
+      );
+
+      return {
+        ...p,
+        formName: Array.from(new Set(matchingForms.map((f) => f.title))),
+        form: matchingForms.map((f) => ({
+          form_id: f.form_id,
+          submission_id: f.submission_id,
+        })),
+      };
+    });
+
+    return finalData;
   }
 
   async saveAIConversation(

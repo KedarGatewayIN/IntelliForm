@@ -109,7 +109,7 @@ export default function FormPreview({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate(`/forms/${params.id}/edit`)}
+                onClick={() => window.history.back()}
               >
                 <ArrowLeftIcon className="h-4 w-4" />
               </Button>

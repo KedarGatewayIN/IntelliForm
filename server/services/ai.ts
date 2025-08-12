@@ -1,6 +1,12 @@
 import { ChatGroq } from "@langchain/groq";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 
+interface ProblemRanking {
+  problem: string;
+  count: number;
+  ids: string[];
+}
+
 class AIService {
   private llm: ChatGroq;
   private gemini: ChatGoogleGenerativeAI;
@@ -27,7 +33,8 @@ class AIService {
    * @returns An object with the AI's content and a boolean flag.
    */
   async chat(
-    message: string
+    message: string,
+    thread?: { role: "user" | "assistant"; content: string }[]
   ): Promise<{ content: string; conversation_finished: boolean }> {
     try {
       const response = await this.llm.invoke([
@@ -93,6 +100,7 @@ class AIService {
             LLM: "Thank you for that clarification. We've noted your feedback on the amount of paperwork in the onboarding process. [CONVERSATION_FINISHED]"
             `,
         },
+        ...(thread && thread?.length > 0 ? thread : []),
         {
           role: "user",
           content: message,
@@ -257,6 +265,66 @@ class AIService {
     } catch (error) {
       console.error("AI service error:", error);
       throw new Error("AI service is currently unavailable");
+    }
+  }
+
+  async getProblemRanking(chat: string): Promise<ProblemRanking[]> {
+    try {
+      const response = await this.llm.invoke([
+        {
+          role: "system",
+          content: `
+            You are an expert AI assistant specializing in granular problem analysis and data aggregation. Your primary goal is to parse user feedback, identify all distinct, specific problems mentioned (even multiple problems within a single entry), group them precisely, and output a ranked JSON summary.
+
+            Core Logic for Problem Identification:
+
+            Granularity is Key: Your primary task is to identify the most specific, actionable problems. Avoid broad, generic categories. For example, if a user mentions "paperwork" and "office tour," these are two separate problems, even if they both occurred during "onboarding."
+
+            One Entry, Multiple Problems: A single submission ID can report multiple distinct issues. You must deconstruct the input text to identify and process each one separately. For example, the entry "user experienced issues with paperwork and office tour during onboarding - 2" contains TWO distinct problems: "issues with paperwork during onboarding" and "office tour during onboarding". Both of these problems are associated with ID "2".
+
+            Precise Canonical Naming: The "problem" name should be a concise summary of the specific issue (e.g., "reducing paperwork in onboarding"), not a high-level category (e.g., "Onboarding Issues").
+
+            Your process must be as follows:
+            Parse and Deconstruct Input: Receive the single string of comma-separated "problem - ID" pairs. For each pair, meticulously analyze the description to identify every distinct problem mentioned.
+            Group Specific Problems: Group entries that describe the exact same core issue. For example, "reducing paperwork" and "issues with paperwork" should be grouped, but "paperwork issues" and "office tour issues" should NOT be grouped together.
+            Establish Descriptive Canonical Names: For each group, create a clear and descriptive canonical name that accurately reflects the specific problem.
+            Aggregate Data: For each group, calculate the total count of mentions and collect all associated submission IDs. Remember that a single ID can appear in multiple groups if it reported multiple problems.
+            Sort by Priority: Sort the final groups by count (descending), then alphabetically by the canonical problem name.
+            Format Output as JSON: Generate a single, minified JSON string representing an array of objects.
+
+            Each object must contain three keys:
+            "problem": The descriptive canonical name string.
+            "count": The aggregated count number.
+            "ids": A JSON array of the submission IDs (as strings).
+
+            Crucial Constraints:
+            Do NOT provide any introductory or concluding text.
+            Your entire response must be only the final, single-line, valid JSON string.
+
+            Example 1 (Basic Grouping):
+            Input: Slow performance - 1, UI is bad - 2, App crashes - 3, Bad performance - 4
+            Output: [{"problem":"Slow performance","count":2,"ids":["1","4"]},{"problem":"App crashes","count":1,"ids":["3"]},{"problem":"UI is bad","count":1,"ids":["2"]}]
+
+            Example 2 (Complex Deconstruction and Grouping):
+            Input: user suggested reducing paperwork in onboarding - 1, user experienced issues with paperwork and office tour during onboarding - 2
+            Output: [{"problem":"reducing paperwork in onboarding","count":2,"ids":["1","2"]},{"problem":"office tour during onboarding","count":1,"ids":["2"]}]`,
+        },
+        {
+          role: "user",
+          content: chat,
+        },
+      ]);
+
+      const resultString = response.content as string;
+
+      const problems: ProblemRanking[] = JSON.parse(resultString);
+
+      return problems;
+    } catch (error) {
+      console.error("AI service error or invalid JSON response:", error);
+      throw new Error(
+        "Failed to get or parse problem ranking from AI service."
+      );
     }
   }
 }

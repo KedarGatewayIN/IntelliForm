@@ -225,7 +225,7 @@ export default function FormBuilder() {
                 Preview
               </Button>
               <Button
-                variant="outline"
+                variant="green"
                 size="sm"
                 onClick={saveForm}
                 disabled={isSaving}

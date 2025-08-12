@@ -14,6 +14,7 @@ import FormAnalytics from "@/pages/form-analytics";
 import ProtectedRoute from "@/components/layout/protected-route";
 import ConversationalForm from "./pages/conversation";
 import AnalyticsPage from "./pages/analytics";
+import RecentSubmissionsPage from "./pages/recent-submissions";
 
 function Router() {
   return (
@@ -28,6 +29,11 @@ function Router() {
       <Route path="/analytics">
         <ProtectedRoute>
           <AnalyticsPage />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/recent">
+        <ProtectedRoute>
+          <RecentSubmissionsPage />
         </ProtectedRoute>
       </Route>
       <Route path="/forms/new">

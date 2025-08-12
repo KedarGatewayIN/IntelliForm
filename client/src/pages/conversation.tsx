@@ -736,6 +736,10 @@ export default function ConversationalForm() {
       try {
         const response = await apiRequest("POST", "/api/ai/chat", {
           message: currentInput,
+          thread: conversation.slice(aiChatStartIndex).map((msg) => ({
+            role: msg.role === "system" ? "assistant" : "user",
+            content: msg.content,
+          })),
         });
         const result = (await response.json()).response; // Expects { content, conversation_finished }
 

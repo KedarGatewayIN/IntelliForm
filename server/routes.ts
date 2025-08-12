@@ -223,6 +223,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Submissions routes
+  app.get("/api/submissions/recent", auth, async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const pageSize = parseInt(req.query.pageSize as string) || 10;
+      const offset = (page - 1) * pageSize;
+      const total = await storage.countAllSubmissions();
+      const submissions = await storage.getAllSubmissions({ offset, limit: pageSize });
+      res.json({ submissions, total, page, pageSize });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get recent submissions" });
+    }
+  });
   app.get("/api/forms/:id/submissions", auth, async (req, res) => {
     try {
       const form = await storage.getForm(req.params.id);
@@ -287,28 +299,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI conversation routes
+  app.get("/api/ai/summarize-problems", async(req, res) => {
+    try {
+      const response = await storage.summarizeProblems();
+      res.json({ response });
+    } catch (error) {
+      res.status(500).json({ message: error instanceof Error ? error.message : "AI service unavailable" });
+    }
+  })
   app.post("/api/ai/chat", async (req, res) => {
     try {
-      const { message, fieldId, submissionId } = req.body;
+      const { message, thread } = req.body;
       
-      // if (!message || !fieldId) {
-      //   return res.status(400).json({ message: "Message and fieldId are required" });
-      // }
-      
-      // Get AI response
-      const response = await aiService.chat(message);
-      
-      // Save conversation if submissionId provided
-      if (submissionId) {
-        await storage.saveAIConversation({
-          submissionId,
-          fieldId,
-          messages: [
-            { role: 'user', content: message, timestamp: new Date().toISOString() },
-            { role: 'assistant', content: response, timestamp: new Date().toISOString() }
-          ]
-        });
-      }
+      const response = await aiService.chat(message, thread);
       
       res.json({ response });
     } catch (error) {
