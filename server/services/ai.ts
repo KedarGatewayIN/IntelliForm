@@ -194,7 +194,7 @@ class AIService {
 
   async getSentimentAnalysis(chat: string) {
     try {
-      const response = await this.gemini.invoke([
+      const response = await this.llm.invoke([
         {
           role: "system",
           content: `

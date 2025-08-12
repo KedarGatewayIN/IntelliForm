@@ -1,16 +1,16 @@
-import { 
-  users, 
-  forms, 
-  submissions, 
+import {
+  users,
+  forms,
+  submissions,
   aiConversations,
-  type User, 
-  type InsertUser, 
-  type Form, 
+  type User,
+  type InsertUser,
+  type Form,
   type InsertForm,
   type Submission,
   type InsertSubmission,
   type AIConversation,
-  type InsertAIConversation
+  type InsertAIConversation,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, count, avg, sql } from "drizzle-orm";
@@ -36,7 +36,9 @@ export interface IStorage {
   getFormAnalytics(formId: string): Promise<any>;
 
   // AI Conversation methods
-  saveAIConversation(conversation: InsertAIConversation): Promise<AIConversation>;
+  saveAIConversation(
+    conversation: InsertAIConversation
+  ): Promise<AIConversation>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -46,7 +48,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, username));
     return user || undefined;
   }
 
@@ -56,10 +61,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(insertUser)
-      .returning();
+    const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
 
@@ -69,7 +71,7 @@ export class DatabaseStorage implements IStorage {
       .from(forms)
       .where(eq(forms.userId, userId))
       .orderBy(desc(forms.updatedAt));
-    
+
     // Get submission counts for each form
     const formsWithCounts = await Promise.all(
       userForms.map(async (form) => {
@@ -77,11 +79,14 @@ export class DatabaseStorage implements IStorage {
           .select({ count: count() })
           .from(submissions)
           .where(eq(submissions.formId, form.id));
-        
+
         const [aiCount] = await db
           .select({ count: count() })
           .from(aiConversations)
-          .leftJoin(submissions, eq(submissions.id, aiConversations.submissionId))
+          .leftJoin(
+            submissions,
+            eq(submissions.id, aiConversations.submissionId)
+          )
           .where(eq(submissions.formId, form.id));
 
         return {
@@ -101,10 +106,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createForm(form: InsertForm): Promise<Form> {
-    const [newForm] = await db
-      .insert(forms)
-      .values(form)
-      .returning();
+    const [newForm] = await db.insert(forms).values(form).returning();
     return newForm;
   }
 
@@ -119,26 +121,26 @@ export class DatabaseStorage implements IStorage {
 
   async deleteForm(id: string): Promise<void> {
     // Delete related data first
-    await db.delete(aiConversations)
-      .where(sql`submission_id IN (SELECT id FROM submissions WHERE form_id = ${id})`);
-    
+    await db
+      .delete(aiConversations)
+      .where(
+        sql`submission_id IN (SELECT id FROM submissions WHERE form_id = ${id})`
+      );
+
     await db.delete(submissions).where(eq(submissions.formId, id));
     await db.delete(forms).where(eq(forms.id, id));
   }
 
   async createSubmission(submission: InsertSubmission): Promise<Submission> {
-   const form = await this.getForm(submission.formId);
-    
-    const context = Object.entries(submission.data)?.map(([key, value]) => {
-      const field = form?.fields.find(f => f.id === key);
-      return field ? `${field.label}: ${value}` : `${key}: ${value}`;
-    }).join("\n") || "";
+    const form = await this.getForm(submission.formId);
 
-    const aiResponse = await aiService.getSentimentAnalysis(context);
-    const sentiment = JSON.parse(aiResponse) as unknown as {
-      action: 'action_needed' | 'no_action_needed';
-      reason?: string;
-    };
+    const context =
+      Object.entries(submission.data)
+        ?.map(([key, value]) => {
+          const field = form?.fields.find((f) => f.id === key);
+          return field ? `${field.label}: ${value}` : `${key}: ${value}`;
+        })
+        .join("\n") || "";
 
     const [newSubmission] = await db
       .insert(submissions)
@@ -147,19 +149,35 @@ export class DatabaseStorage implements IStorage {
         data: submission.data,
         timeTaken: submission.timeTaken,
         ipAddress: submission.ipAddress,
-        aiActionNeeded: sentiment.action === 'action_needed',
-        aiProblem: sentiment?.reason,
       })
       .returning();
 
+    aiService.getSentimentAnalysis(context).then((aiResponse) => {
+      const sentiment = JSON.parse(aiResponse) as unknown as {
+        action: "action_needed" | "no_action_needed";
+        reason?: string;
+      };
+      this.updateSubmission(newSubmission.id, {
+        formId: submission.formId,
+        data: submission.data,
+        timeTaken: submission.timeTaken,
+        ipAddress: submission.ipAddress,
+        resolved: false,
+        aiProblem: sentiment?.reason,
+      });
+    });
+
     return newSubmission;
   }
-  
-  async updateSubmission(submission_id: string, submission: Partial<InsertSubmission>): Promise<Submission> {
+
+  async updateSubmission(
+    submission_id: string,
+    submission: Partial<InsertSubmission>
+  ): Promise<Submission> {
     const [updatedSubmission] = await db
       .update(submissions)
       .set({ ...submission })
-      .where(eq(forms.id, submission_id))
+      .where(eq(submissions.id, submission_id))
       .returning();
     return updatedSubmission;
   }
@@ -188,7 +206,7 @@ export class DatabaseStorage implements IStorage {
 
     return submissionsWithAI;
   }
-  
+
   async getFormSubmission(submissionId: string): Promise<Submission[]> {
     const formSubmissions = await db
       .select()
@@ -244,7 +262,7 @@ export class DatabaseStorage implements IStorage {
       completionRate,
       aiInteractions,
       averageTimeSeconds,
-      recentResponses: recentResponses.map(response => ({
+      recentResponses: recentResponses.map((response) => ({
         ...response,
         hasAiInteractions: false, // This would need a more complex query
         status: "completed",
@@ -253,7 +271,9 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async saveAIConversation(conversation: InsertAIConversation): Promise<AIConversation> {
+  async saveAIConversation(
+    conversation: InsertAIConversation
+  ): Promise<AIConversation> {
     const [newConversation] = await db
       .insert(aiConversations)
       .values(conversation)

@@ -248,12 +248,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Form not found" });
       }
       
-      // Check ownership
-      if (form.userId !== req.userId) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-      
       const submissions = await storage.getFormSubmission(req.params.sid);
+      res.json(submissions);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get submissions" });
+    }
+  });
+  app.put("/api/submission/:sid", auth, async (req, res) => {
+    try {
+      const submissions = await storage.getFormSubmission(req.params.sid);
+      await storage.updateSubmission(req.params.sid, {
+        ...submissions,
+        ...req.body,
+      });
       res.json(submissions);
     } catch (error) {
       res.status(500).json({ message: "Failed to get submissions" });

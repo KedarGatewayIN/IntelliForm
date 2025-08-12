@@ -36,6 +36,16 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 
+interface IAiConversation {
+  submissionId: string;
+  fieldId: string;
+  messages: {
+    role: "user" | "assistant";
+    content: string;
+    timestamp: string;
+  }[];
+}
+
 // Helper function to validate a field's value
 const validateField = (
   field: FormField,
@@ -503,17 +513,7 @@ export default function ConversationalForm() {
   const [startTime] = useState(Date.now());
   const [isAiChatMode, setIsAiChatMode] = useState(false);
   const [aiChatStartIndex, setAiChatStartIndex] = useState<number | null>(null);
-  const [aiConversation, setAiConversation] = useState<
-    {
-      submissionId: string;
-      fieldId: string;
-      messages: {
-        role: "user" | "assistant";
-        content: string;
-        timestamp: string;
-      }[];
-    }[]
-  >([]);
+  const [aiConversation, setAiConversation] = useState<IAiConversation[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const textInputTypes = [
@@ -604,7 +604,10 @@ export default function ConversationalForm() {
     return null;
   };
 
-  const submitForm = async (finalAnswers: Record<string, any>) => {
+  const submitForm = async (
+    finalAnswers: Record<string, any>,
+    aiConvo?: IAiConversation[]
+  ) => {
     setIsSubmitting(true);
     setShowTyping(true);
 
@@ -619,20 +622,35 @@ export default function ConversationalForm() {
         }
       );
       const response = await submission.json();
-
-      await Promise.all(
-        aiConversation.map((conv) => {
-          apiRequest("POST", "/api/ai/saveAIConversation", {
-            submissionId: response.submissionId,
-            fieldId: conv.fieldId,
-            messages: conv.messages.map((msg) => ({
-              role: msg.role,
-              content: msg.content,
-              timestamp: msg.timestamp,
-            })),
-          });
-        })
-      );
+      if (aiConvo?.length) {
+        await Promise.all(
+          aiConvo.map((conv) => {
+            apiRequest("POST", "/api/ai/saveAIConversation", {
+              submissionId: response.submissionId,
+              fieldId: conv.fieldId,
+              messages: conv.messages.map((msg) => ({
+                role: msg.role,
+                content: msg.content,
+                timestamp: msg.timestamp,
+              })),
+            });
+          })
+        );
+      } else if (aiConversation.length) {
+        await Promise.all(
+          aiConversation.map((conv) => {
+            apiRequest("POST", "/api/ai/saveAIConversation", {
+              submissionId: response.submissionId,
+              fieldId: conv.fieldId,
+              messages: conv.messages.map((msg) => ({
+                role: msg.role,
+                content: msg.content,
+                timestamp: msg.timestamp,
+              })),
+            });
+          })
+        );
+      }
 
       setTimeout(() => {
         setShowTyping(false);
@@ -729,7 +747,7 @@ export default function ConversationalForm() {
         if (result.conversation_finished) {
           // AI chat for this field is done. Time to summarize and move on.
           const chatToSummarize = conversation
-            .slice(aiChatStartIndex + 1) // Get messages after the initial question
+            .slice(aiChatStartIndex)
             .concat([
               { role: "user", content: currentInput, timestamp: new Date() },
               {
@@ -755,33 +773,36 @@ export default function ConversationalForm() {
           //   const cleanedConversation = prev.slice(0, aiChatStartIndex + 1); // Keep up to the initial question
           //   return [...cleanedConversation, { role: "user", content: summary }];
           // });
-
-          setAiConversation((prev) => [
-            ...prev,
-            {
-              submissionId: form!.id,
-              fieldId: activeField.id,
-              messages: conversation
-                .slice(aiChatStartIndex + 1)
-                .concat([
-                  {
-                    role: "user",
-                    content: currentInput,
-                    timestamp: new Date(),
-                  },
-                  {
-                    role: "system",
-                    content: result.content,
-                    timestamp: new Date(),
-                  },
-                ])
-                .map((msg) => ({
-                  role: msg.role === 'system' ? 'assistant' : 'user',
-                  content: msg.content,
-                  timestamp: msg.timestamp!.toISOString(),
-                })),
-            },
-          ]);
+          let aiConvo: IAiConversation[] = [];
+          setAiConversation((prev) => {
+            aiConvo = [
+              ...prev,
+              {
+                submissionId: form!.id,
+                fieldId: activeField.id,
+                messages: conversation
+                  .slice(aiChatStartIndex)
+                  .concat([
+                    {
+                      role: "user",
+                      content: currentInput,
+                      timestamp: new Date(),
+                    },
+                    {
+                      role: "system",
+                      content: result.content,
+                      timestamp: new Date(),
+                    },
+                  ])
+                  .map((msg) => ({
+                    role: msg.role === "system" ? "assistant" : "user",
+                    content: msg.content,
+                    timestamp: msg.timestamp!.toISOString(),
+                  })),
+              },
+            ];
+            return aiConvo;
+          });
 
           // Submit the summary as the field's answer and find the next field.
           const newAnswers = { ...answeredFields, [activeField.id]: summary };
@@ -790,7 +811,7 @@ export default function ConversationalForm() {
           setActiveField(nextField); // This will trigger the useEffect to exit AI mode.
 
           if (!nextField) {
-            submitForm(newAnswers);
+            submitForm(newAnswers, aiConvo);
           }
         }
       } catch (error) {
