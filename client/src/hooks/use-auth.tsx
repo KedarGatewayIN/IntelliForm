@@ -27,7 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryKey: ["/api/auth/me"],
     queryFn: async () => {
       try {
-        const response = await fetch("/api/auth/me", { credentials: "include" });
+        const response = await fetch("/api/auth/me", { credentials: "omit" });
         if (response.ok) {
           const data = await response.json();
           setUser(data.user);
