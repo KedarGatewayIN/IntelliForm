@@ -15,6 +15,7 @@ import ProtectedRoute from "@/components/layout/protected-route";
 import ConversationalForm from "./pages/conversation";
 import AnalyticsPage from "./pages/analytics";
 import RecentSubmissionsPage from "./pages/recent-submissions";
+import TodoPage from "./pages/todo";
 
 function Router() {
   return (
@@ -29,6 +30,11 @@ function Router() {
       <Route path="/analytics">
         <ProtectedRoute>
           <AnalyticsPage />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/todo">
+        <ProtectedRoute>
+          <TodoPage />
         </ProtectedRoute>
       </Route>
       <Route path="/recent">

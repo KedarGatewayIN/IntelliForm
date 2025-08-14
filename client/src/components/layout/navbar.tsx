@@ -25,6 +25,7 @@ export default function Navbar() {
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
     { href: "/recent", label: "Recent", icon: Clock },
     { href: "/analytics", label: "Analytics", icon: BarChart3 },
+    { href: "/todo", label: "Todo", icon: BarChart3 },
   ];
 
   return (

@@ -18,29 +18,11 @@ import {
   TooltipContent,
 } from "@/components/ui/tooltip";
 import { BarChart3 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useQuery } from "@tanstack/react-query";
 
 const AnalyticsPage: React.FC = () => {
   const [forms, setForms] = useState<Form[]>([]);
   const [loading, setLoading] = useState(true);
   const [, navigate] = useLocation();
-
-  const { data: { response: problems } = { response: [] }, isLoading: problemsLoading } =
-    useQuery<{
-      response: {
-        problem: string;
-        count: number;
-        formName: string[];
-        form: {
-          form_id: string;
-          submission_id: string;
-        }[];
-      }[];
-    }>({
-      queryKey: ["/api/ai/summarize-problems"],
-    });
 
   useEffect(() => {
     const getForms = async () => {
@@ -106,82 +88,6 @@ const AnalyticsPage: React.FC = () => {
                   ))}
                 </TableBody>
               </Table>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Problem Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {problemsLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              </div>
-            ) : problems && problems.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Problem</TableHead>
-                    <TableHead>Form Name</TableHead>
-                    <TableHead className="text-center">Count</TableHead>
-                    <TableHead>Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {problems.map((item, idx) => (
-                    <TableRow key={idx} className="hover:bg-gray-50">
-                      <TableCell className="font-medium capitalize">
-                        {item.problem}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {item.formName.join(", ") || "-"}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge
-                          variant="outline"
-                          className="bg-blue-100 text-blue-800 border-blue-200"
-                        >
-                          {item.count}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <TableCell>
-                          <ScrollArea className="w-16 overflow-x-auto">
-                            <Tooltip>
-                              {item.form.map((form) => (
-                                <>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="outline"
-                                      size="icon"
-                                      onClick={() =>
-                                        navigate(
-                                          `/forms/${form.form_id}/responses/${form.submission_id}`
-                                        )
-                                      }
-                                    >
-                                      <BarChart3 className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    View Submission
-                                  </TooltipContent>
-                                </>
-                              ))}
-                            </Tooltip>
-                          </ScrollArea>
-                        </TableCell>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                No problems found
-              </div>
             )}
           </CardContent>
         </Card>
