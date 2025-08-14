@@ -408,159 +408,196 @@ export default function FormAnalytics() {
                         )}
                       </TableCell>
                       <TableCell>
-                        {submission.aiProblem ? (
-                          <>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <Dialog>
-                                  <DialogTrigger asChild>
-                                    <TooltipTrigger asChild>
-                                      {submission.resolved ? (
+                        <>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <TooltipTrigger asChild>
+                                    {!submission.aiProblem ||
+                                    submission.resolved ? (
+                                      <Button variant="outline" size="sm">
                                         <CheckCheck className="h-4 w-4 text-green-600 cursor-pointer" />
-                                      ) : (
+                                      </Button>
+                                    ) : (
+                                      <Button variant="outline" size="sm">
                                         <BadgeAlert className="h-4 w-4 text-red-600 cursor-pointer" />
-                                      )}
-                                    </TooltipTrigger>
-                                  </DialogTrigger>
+                                      </Button>
+                                    )}
+                                  </TooltipTrigger>
+                                </DialogTrigger>
 
-                                  {/* Tooltip Content */}
-                                  <TooltipContent side="top" align="center">
-                                    {submission.resolved
-                                      ? "Problem Resolved"
-                                      : submission.aiProblem}
-                                  </TooltipContent>
+                                {/* Tooltip Content */}
+                                <TooltipContent side="top" align="center">
+                                  {!submission.aiProblem
+                                    ? "No problem detected"
+                                    : submission.resolved
+                                    ? "Problem Resolved"
+                                    : submission.aiProblem}
+                                </TooltipContent>
 
-                                  {/* Dialog Content */}
-                                  <DialogContent className="max-w-2xl h-auto max-h-[80vh] flex flex-col">
-                                    <DialogHeader>
-                                      <DialogTitle className="text-lg font-semibold">
-                                        AI Conversation
-                                      </DialogTitle>
-                                      <p className="text-sm text-muted-foreground">
-                                        Showing all AI and User messages per
-                                        field
-                                      </p>
-                                    </DialogHeader>
+                                {/* Dialog Content */}
+                                <DialogContent className="max-w-2xl h-auto max-h-[80vh] flex flex-col">
+                                  <DialogHeader>
+                                    <DialogTitle className="text-lg font-semibold">
+                                      AI Conversation
+                                    </DialogTitle>
+                                    <p className="text-sm text-muted-foreground">
+                                      Showing all AI and User messages per field
+                                    </p>
+                                  </DialogHeader>
 
-                                    {/* Scrollable Conversations */}
-                                    <ScrollArea className="flex-1 pr-2 space-y-6 overflow-y-auto">
-                                      {submission.aiConversations?.length ? (
-                                        submission.aiConversations.map(
-                                          (conv, idx: number) => (
-                                            <Card
-                                              key={conv.id || idx}
-                                              className="shadow-sm border"
-                                            >
-                                              <CardHeader className="pb-2">
-                                                <CardTitle className="text-sm font-medium text-gray-700">
-                                                  Field:{" "}
-                                                  {conv.messages[0].content}
-                                                </CardTitle>
-                                                <Separator />
-                                              </CardHeader>
+                                  {/* Scrollable Conversations */}
+                                  <ScrollArea className="flex-1 pr-2 space-y-6 overflow-y-auto">
+                                    {submission.aiConversations?.length ? (
+                                      submission.aiConversations.map(
+                                        (conv, idx: number) => (
+                                          <Card
+                                            key={conv.id || idx}
+                                            className="shadow-sm border"
+                                          >
+                                            <CardHeader className="pb-2">
+                                              <CardTitle className="text-sm font-medium text-gray-700">
+                                                Field:{" "}
+                                                {conv.messages[0].content}
+                                              </CardTitle>
+                                              <Separator />
+                                            </CardHeader>
 
-                                              <CardContent className="p-4 space-y-3">
-                                                {conv.messages
-                                                  .slice(1)
-                                                  .map((msg, mIdx: number) => (
+                                            <CardContent className="p-4 space-y-3">
+                                              {conv.messages
+                                                .slice(1)
+                                                .map((msg, mIdx: number) => (
+                                                  <div
+                                                    key={mIdx}
+                                                    className={`flex items-start gap-2 ${
+                                                      msg.role === "user"
+                                                        ? "justify-end"
+                                                        : "justify-start"
+                                                    }`}
+                                                  >
+                                                    {msg.role === "ai" && (
+                                                      <div className="w-8 h-8 rounded-full bg-yellow-200 flex items-center justify-center text-xs font-bold text-gray-800">
+                                                        AI
+                                                      </div>
+                                                    )}
+
                                                     <div
-                                                      key={mIdx}
-                                                      className={`flex items-start gap-2 ${
+                                                      className={`rounded-2xl px-4 py-2 max-w-[75%] text-sm shadow-sm ${
                                                         msg.role === "user"
-                                                          ? "justify-end"
-                                                          : "justify-start"
+                                                          ? "bg-blue-500 text-white rounded-br-none"
+                                                          : "bg-yellow-100 text-gray-800 rounded-bl-none"
                                                       }`}
                                                     >
-                                                      {msg.role === "ai" && (
-                                                        <div className="w-8 h-8 rounded-full bg-yellow-200 flex items-center justify-center text-xs font-bold text-gray-800">
-                                                          AI
-                                                        </div>
-                                                      )}
-
-                                                      <div
-                                                        className={`rounded-2xl px-4 py-2 max-w-[75%] text-sm shadow-sm ${
-                                                          msg.role === "user"
-                                                            ? "bg-blue-500 text-white rounded-br-none"
-                                                            : "bg-yellow-100 text-gray-800 rounded-bl-none"
-                                                        }`}
-                                                      >
-                                                        {msg.content}
-                                                      </div>
-
-                                                      {msg.role === "user" && (
-                                                        <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-xs font-bold text-white">
-                                                          U
-                                                        </div>
-                                                      )}
+                                                      {msg.content}
                                                     </div>
-                                                  ))}
-                                              </CardContent>
-                                            </Card>
-                                          )
-                                        )
-                                      ) : (
-                                        <div className="text-gray-500 text-center py-4">
-                                          No conversation found.
-                                        </div>
-                                      )}
-                                    </ScrollArea>
 
-                                    {/* Footer */}
-                                    <DialogFooter className="pt-4 border-t">
-                                      <DialogClose>
-                                        <div className="flex gap-4">
-                                          {submission.resolved ? (
-                                            <Button
-                                              variant="destructive"
-                                              onClick={() => {
-                                                updateSubmissionResolved(
-                                                  submission.id,
-                                                  false
-                                                );
-                                              }}
-                                            >
-                                              Mark as Unresolved
-                                            </Button>
-                                          ) : (
-                                            <Button
-                                              variant="default"
-                                              onClick={() => {
-                                                updateSubmissionResolved(
-                                                  submission.id,
-                                                  true
-                                                );
-                                              }}
-                                            >
-                                              Mark as Resolved
-                                            </Button>
-                                          )}
-                                          <Button variant="outline">
-                                            Close
+                                                    {msg.role === "user" && (
+                                                      <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-xs font-bold text-white">
+                                                        U
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                ))}
+                                            </CardContent>
+                                          </Card>
+                                        )
+                                      )
+                                    ) : (
+                                      <div className="text-gray-500 text-center py-4">
+                                        No conversation found.
+                                      </div>
+                                    )}
+                                  </ScrollArea>
+
+                                  {/* Footer */}
+                                  <DialogFooter className="pt-4 border-t">
+                                    <DialogClose>
+                                      <div className="flex gap-4">
+                                        {!submission.aiProblem ? (
+                                          ""
+                                        ) : submission.resolved ? (
+                                          <Button
+                                            variant="destructive"
+                                            onClick={() => {
+                                              updateSubmissionResolved(
+                                                submission.id,
+                                                false
+                                              );
+                                            }}
+                                          >
+                                            Mark as Unresolved
                                           </Button>
-                                        </div>
-                                      </DialogClose>
-                                    </DialogFooter>
-                                  </DialogContent>
-                                </Dialog>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </>
-                        ) : (
-                          <CheckCircleIcon className="h-4 w-4 text-green-600" />
-                        )}
+                                        ) : (
+                                          <Button
+                                            variant="default"
+                                            onClick={() => {
+                                              updateSubmissionResolved(
+                                                submission.id,
+                                                true
+                                              );
+                                            }}
+                                          >
+                                            Mark as Resolved
+                                          </Button>
+                                        )}
+                                        <Button variant="outline">Close</Button>
+                                      </div>
+                                    </DialogClose>
+                                  </DialogFooter>
+                                </DialogContent>
+                              </Dialog>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </>
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            navigate(
-                              `/forms/${params.id}/responses/${submission.id}`
-                            )
-                          }
-                        >
-                          View
-                        </Button>
+                        <div className="flex gap-2">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    navigate(
+                                      `/forms/${params.id}/responses/${submission.id}`
+                                    )
+                                  }
+                                >
+                                  <EyeIcon className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>View submission</TooltipContent>
+                            </Tooltip>
+                            {!submission.aiProblem ? (
+                              ""
+                            ) : (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      updateSubmissionResolved(
+                                        submission.id,
+                                        !submission.resolved
+                                      );
+                                    }}
+                                  >
+                                    <CheckCheck className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  Mark as{" "}
+                                  {submission.resolved
+                                    ? "unresolved"
+                                    : "resolved"}
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                          </TooltipProvider>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

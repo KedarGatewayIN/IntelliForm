@@ -314,36 +314,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async summarizeProblems() {
-    // const result = await db
-    //   .select({
-    //     aiProblem: submissions.aiProblem,
-    //     id: submissions.id,
-    //   })
-    //   .from(submissions)
-    //   .where(
-    //     and(eq(submissions.resolved, false), isNotNull(submissions.aiProblem))
-    //   );
+    const aiProblems = await db
+      .select({
+        aiProblem: submissions.aiProblem,
+        id: submissions.id,
+      })
+      .from(submissions)
+      .where(
+        and(eq(submissions.resolved, false), isNotNull(submissions.aiProblem))
+      );
 
-    // const unresolvedProblems = result
-    //   .map((row) => `${row.aiProblem} - ${row.id}`)
-    //   .join(", ");
-    // const problems = await aiService.getProblemRanking(unresolvedProblems);
-    const problems = [
-      {
-        problem: "reducing paperwork in onboarding",
-        count: 2,
-        ids: [
-          "83fbc7ed-6c06-42a1-bb8f-f430c3a0d126",
-          "6065e04a-21c9-4933-b00a-d63eac4e8f69",
-        ],
-      },
-      {
-        problem: "office tour during onboarding",
-        count: 1,
-        ids: ["6065e04a-21c9-4933-b00a-d63eac4e8f69"],
-      },
-    ];
 
+    const unresolvedProblems = aiProblems
+      .map((row) => `${row.aiProblem} - ${row.id}`)
+      .join(", ");
+    const problems = await aiService.getProblemRanking(unresolvedProblems);
     const submissionIds = Array.from(new Set(problems.flatMap((p) => p.ids)));
 
     const submissionWithForms = await db
@@ -363,15 +348,16 @@ export class DatabaseStorage implements IStorage {
 
       return {
         ...p,
-        formName: Array.from(new Set(matchingForms.map((f) => f.title))),
+        // formName: Array.from(new Set(matchingForms.map((f) => f.title))),
         form: matchingForms.map((f) => ({
           form_id: f.form_id,
+          title: f.title,
           submission_id: f.submission_id,
         })),
       };
     });
 
-    return finalData;
+    return finalData.sort((a, b) => b.count - a.count);
   }
 
   async saveAIConversation(

@@ -24,20 +24,34 @@ import { useQuery } from "@tanstack/react-query";
 const TodoPage: React.FC = () => {
   const [, navigate] = useLocation();
 
-  const { data: { response: problems } = { response: [] }, isLoading: problemsLoading } =
-    useQuery<{
-      response: {
-        problem: string;
-        count: number;
-        formName: string[];
-        form: {
-          form_id: string;
-          submission_id: string;
-        }[];
+  const {
+    data: { response: problems } = { response: [] },
+    isLoading: problemsLoading,
+  } = useQuery<{
+    response: {
+      problem: string;
+      count: number;
+      form: {
+        form_id: string;
+        title: string;
+        submission_id: string;
       }[];
-    }>({
-      queryKey: ["/api/ai/summarize-problems"],
+    }[];
+  }>({
+    queryKey: ["/api/ai/summarize-problems"],
+  });
+
+  function removeDuplicates<T>(array: T[], key: keyof T): T[] {
+    const seen = new Set<any>();
+    return array.filter((item) => {
+      const value = item[key];
+      if (seen.has(value)) {
+        return false;
+      }
+      seen.add(value);
+      return true;
     });
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -70,7 +84,22 @@ const TodoPage: React.FC = () => {
                         {item.problem}
                       </TableCell>
                       <TableCell className="font-medium">
-                        {item.formName.join(", ") || "-"}
+                        {removeDuplicates(item.form, "form_id").length > 0
+                          ? removeDuplicates(item.form, "form_id").map((form) => (
+                              <Button
+                                key={form.form_id}
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  navigate(
+                                    `/forms/${form.form_id}/analytics`
+                                  )
+                                }
+                              >
+                                {form.title}
+                              </Button>
+                            ))
+                          : "-"}
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge
