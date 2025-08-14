@@ -37,7 +37,7 @@ export class AuthService {
   async getCurrentUser(): Promise<User | null> {
     try {
       const response = await fetch("/api/auth/me", { 
-        credentials: "omit" 
+        credentials: "include" 
       });
       
       if (response.ok) {
