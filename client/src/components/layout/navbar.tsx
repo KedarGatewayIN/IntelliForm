@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   Clock,
   BarChart3,
+  CheckCircle,
 } from "lucide-react";
 import { usePathname } from "wouter/use-browser-location";
 import clsx from "clsx";
@@ -25,7 +26,7 @@ export default function Navbar() {
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
     { href: "/recent", label: "Recent", icon: Clock },
     { href: "/analytics", label: "Analytics", icon: BarChart3 },
-    { href: "/todo", label: "Todo", icon: BarChart3 },
+    { href: "/todo", label: "Todo", icon: CheckCircle },
   ];
 
   return (
