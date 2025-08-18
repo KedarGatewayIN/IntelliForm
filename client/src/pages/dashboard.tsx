@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,27 @@ import {
 
 export default function Dashboard() {
   const { data: forms = [], isLoading } = useForms();
+
+  const [activeFilter, setActiveFilter] = useState<"all" | "published" | "draft" | "ai">("all");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredForms = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return forms.filter((form) => {
+      const matchesFilter =
+        activeFilter === "all" ||
+        (activeFilter === "published" && form.isPublished) ||
+        (activeFilter === "draft" && !form.isPublished) ||
+        (activeFilter === "ai" && form.fields?.some((f: any) => f?.aiEnabled));
+
+      if (!matchesFilter) return false;
+
+      if (!query) return true;
+      const title = form.title?.toLowerCase() ?? "";
+      const description = form.description?.toLowerCase() ?? "";
+      return title.includes(query) || description.includes(query);
+    });
+  }, [forms, activeFilter, searchQuery]);
 
   const formatDuration = (totalSeconds: number) => {
     const seconds = Math.max(0, Math.floor(totalSeconds || 0));
@@ -155,19 +177,36 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Filter and Search */}
+        {/* Filter and Search */
+        }
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div className="flex space-x-2">
-            <Button variant="default" size="sm">
+            <Button
+              variant={activeFilter === "all" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveFilter("all")}
+            >
               All Forms
             </Button>
-            <Button variant="outline" size="sm">
+            <Button
+              variant={activeFilter === "published" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveFilter("published")}
+            >
               Published
             </Button>
-            <Button variant="outline" size="sm">
+            <Button
+              variant={activeFilter === "draft" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveFilter("draft")}
+            >
               Draft
             </Button>
-            <Button variant="outline" size="sm">
+            <Button
+              variant={activeFilter === "ai" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setActiveFilter("ai")}
+            >
               AI-Enabled
             </Button>
           </div>
@@ -177,6 +216,8 @@ export default function Dashboard() {
               type="text"
               placeholder="Search forms..."
               className="pl-10 w-full sm:w-64"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg
@@ -196,9 +237,10 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Forms Grid */}
+        {/* Forms Grid */
+        }
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {forms.map((form) => (
+          {filteredForms.map((form) => (
             <Card
               key={form.id}
               className="hover:shadow-lg transition-all duration-200 group"
