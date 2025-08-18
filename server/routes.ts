@@ -228,8 +228,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const page = parseInt(req.query.page as string) || 1;
       const pageSize = parseInt(req.query.pageSize as string) || 10;
       const offset = (page - 1) * pageSize;
-      const total = await storage.countAllSubmissions();
-      const submissions = await storage.getAllSubmissions({ offset, limit: pageSize });
+      const total = await storage.countAllSubmissions({ userId: req.userId! });
+      const submissions = await storage.getAllSubmissions({ offset, limit: pageSize, userId: req.userId! });
       res.json({ submissions, total, page, pageSize });
     } catch (error) {
       res.status(500).json({ message: "Failed to get recent submissions" });

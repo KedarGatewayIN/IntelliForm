@@ -17,7 +17,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, BarChart } from "lucide-react";
 
 const AnalyticsPage: React.FC = () => {
   const [forms, setForms] = useState<Form[]>([]);
@@ -50,11 +50,22 @@ const AnalyticsPage: React.FC = () => {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
             ) : forms.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500 font-medium">No forms found.</p>
-                <p className="text-gray-400 text-sm">
-                  Create a form to get started
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                  <BarChart className="h-8 w-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  No forms to analyze
+                </h3>
+                <p className="text-gray-500 mb-6 max-w-md">
+                  Create your first form to start collecting responses and view detailed analytics about your form performance.
                 </p>
+                <Button 
+                  onClick={() => navigate("/")}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  Create Your First Form
+                </Button>
               </div>
             ) : (
               <Table>

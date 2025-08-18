@@ -16,7 +16,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, CheckSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery } from "@tanstack/react-query";
@@ -24,22 +24,102 @@ import { useQuery } from "@tanstack/react-query";
 const TodoPage: React.FC = () => {
   const [, navigate] = useLocation();
 
-  const {
-    data: { response: problems } = { response: [] },
-    isLoading: problemsLoading,
-  } = useQuery<{
-    response: {
-      problem: string;
-      count: number;
-      form: {
-        form_id: string;
-        title: string;
-        submission_id: string;
-      }[];
-    }[];
-  }>({
-    queryKey: ["/api/ai/summarize-problems"],
-  });
+  const { data: problems, isLoading: problemsLoading } = {
+    data: [
+      {
+        problem: "missing physical office tour during onboarding",
+        count: 3,
+        ids: [
+          "63ccacb7-2834-4c33-b6c6-f70258d8f9e7",
+          "43584c52-2cce-4815-9c47-f0cd75837dc2",
+          "2e20580a-e110-481a-b1ea-71df6fa2a007",
+        ],
+        solutions: [
+          "Create a self-guided virtual tour video",
+          "Provide a detailed office map with key locations",
+          "Assign an onboarding buddy to give a personalized tour",
+        ],
+        form: [
+          {
+            form_id: "313cabc5-5db7-4288-9b99-fc46f3cdcb75",
+            title: "New Hire Orientation Survey",
+            submission_id: "63ccacb7-2834-4c33-b6c6-f70258d8f9e7",
+          },
+          {
+            form_id: "313cabc5-5db7-4288-9b99-fc46f3cdcb75",
+            title: "New Hire Orientation Survey",
+            submission_id: "43584c52-2cce-4815-9c47-f0cd75837dc2",
+          },
+          {
+            form_id: "4c82c402-d869-4601-8f90-bc29e64fd053",
+            title: "Suggestions Survey",
+            submission_id: "2e20580a-e110-481a-b1ea-71df6fa2a007",
+          },
+        ],
+      },
+      {
+        problem: "excessive paperwork during onboarding",
+        count: 2,
+        ids: [
+          "63ccacb7-2834-4c33-b6c6-f70258d8f9e7",
+          "43584c52-2cce-4815-9c47-f0cd75837dc2",
+        ],
+        solutions: [
+          "Digitize onboarding documents and forms",
+          "Implement an e-signature solution",
+          "Consolidate multiple forms into a single digital packet",
+        ],
+        form: [
+          {
+            form_id: "313cabc5-5db7-4288-9b99-fc46f3cdcb75",
+            title: "New Hire Orientation Survey",
+            submission_id: "63ccacb7-2834-4c33-b6c6-f70258d8f9e7",
+          },
+          {
+            form_id: "313cabc5-5db7-4288-9b99-fc46f3cdcb75",
+            title: "New Hire Orientation Survey",
+            submission_id: "43584c52-2cce-4815-9c47-f0cd75837dc2",
+          },
+        ],
+      },
+      {
+        problem: "negative feedback about HR round in onboarding process",
+        count: 1,
+        ids: ["c22578eb-f011-414b-9c0b-bf07083a6a8b"],
+        solutions: [
+          "Improve the HR round by making it more personalized and interactive",
+          "Provide clear expectations and goals for the HR round",
+          "Make the HR round more concise and efficient",
+        ],
+        form: [
+          {
+            form_id: "313cabc5-5db7-4288-9b99-fc46f3cdcb75",
+            title: "New Hire Orientation Survey",
+            submission_id: "c22578eb-f011-414b-9c0b-bf07083a6a8b",
+          },
+        ],
+      },
+    ],
+    isLoading: false,
+  };
+
+  // const {
+  //   data: { response: problems } = { response: [] },
+  //   isLoading: problemsLoading,
+  // } = useQuery<{
+  //   response: {
+  //     problem: string;
+  //     count: number;
+  //     form: {
+  //       form_id: string;
+  //       title: string;
+  //       submission_id: string;
+  //     }[];
+  //     solutions: string[];
+  //   }[];
+  // }>({
+  //   queryKey: ["/api/ai/summarize-problems"],
+  // });
 
   function removeDuplicates<T>(array: T[], key: keyof T): T[] {
     const seen = new Set<any>();
@@ -73,8 +153,11 @@ const TodoPage: React.FC = () => {
                   <TableRow>
                     <TableHead>Problem</TableHead>
                     <TableHead>Form Name</TableHead>
-                    <TableHead className="text-center">Count</TableHead>
-                    <TableHead>Action</TableHead>
+                    <TableHead className="text-center">
+                      Number of times reported
+                    </TableHead>
+                    <TableHead>Solutions</TableHead>
+                    <TableHead>Submissions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -85,20 +168,20 @@ const TodoPage: React.FC = () => {
                       </TableCell>
                       <TableCell className="font-medium">
                         {removeDuplicates(item.form, "form_id").length > 0
-                          ? removeDuplicates(item.form, "form_id").map((form) => (
-                              <Button
-                                key={form.form_id}
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  navigate(
-                                    `/forms/${form.form_id}/analytics`
-                                  )
-                                }
-                              >
-                                {form.title}
-                              </Button>
-                            ))
+                          ? removeDuplicates(item.form, "form_id").map(
+                              (form) => (
+                                <Button
+                                  key={form.form_id}
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    navigate(`/forms/${form.form_id}/analytics`)
+                                  }
+                                >
+                                  {form.title}
+                                </Button>
+                              )
+                            )
                           : "-"}
                       </TableCell>
                       <TableCell className="text-center">
@@ -109,41 +192,99 @@ const TodoPage: React.FC = () => {
                           {item.count}
                         </Badge>
                       </TableCell>
+                      <TableCell className="text-center">
+                        <Tooltip delayDuration={100}>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="hover:bg-blue-100"
+                              aria-label="View Solutions"
+                            >
+                              <span className="sr-only">View Solutions</span>
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-5 w-5 text-blue-600"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M13 16h-1v-4h-1m1-4h.01M12 20c4.418 0 8-3.582 8-8s-3.582-8-8-8-8 3.582-8 8 3.582 8 8 8z"
+                                />
+                              </svg>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent
+                            side="right"
+                            className="max-w-xs p-4 rounded-lg shadow-lg bg-white border border-gray-200"
+                          >
+                            <div className="text-left">
+                              <div className="font-semibold mb-2 text-blue-700">
+                                Suggested Solutions
+                              </div>
+                              <ul className="list-disc pl-5 space-y-2">
+                                {item.solutions.map((solution, idx) => (
+                                  <li
+                                    key={idx}
+                                    className="text-gray-800 text-sm leading-snug"
+                                  >
+                                    {solution}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TableCell>
                       <TableCell>
-                        <TableCell>
-                          <ScrollArea className="w-16 overflow-x-auto">
-                            <Tooltip>
-                              {item.form.map((form) => (
-                                <>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="outline"
-                                      size="icon"
-                                      onClick={() =>
-                                        navigate(
-                                          `/forms/${form.form_id}/responses/${form.submission_id}`
-                                        )
-                                      }
-                                    >
-                                      <BarChart3 className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    View Submission
-                                  </TooltipContent>
-                                </>
-                              ))}
-                            </Tooltip>
-                          </ScrollArea>
-                        </TableCell>
+                        <ScrollArea className="w-16 overflow-x-auto">
+                          <Tooltip>
+                            {item.form.map((form) => (
+                              <>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() =>
+                                      navigate(
+                                        `/forms/${form.form_id}/responses/${form.submission_id}`
+                                      )
+                                    }
+                                  >
+                                    <BarChart3 className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>View Submission</TooltipContent>
+                              </>
+                            ))}
+                          </Tooltip>
+                        </ScrollArea>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             ) : (
-              <div className="text-center py-8 text-gray-500">
-                No problems found
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                  <CheckSquare className="h-8 w-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  No action items found
+                </h3>
+                <p className="text-gray-500 mb-6 max-w-md">
+                  When AI analyzes your form submissions and identifies problems, action items will appear here with suggested solutions to help you improve your forms.
+                </p>
+                <Button 
+                  onClick={() => navigate("/forms/new")}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  Create Forms to Get Started
+                </Button>
               </div>
             )}
           </CardContent>

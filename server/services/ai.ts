@@ -274,28 +274,32 @@ class AIService {
         {
           role: "system",
           content: `
-            You are an expert AI assistant specializing in granular problem analysis and data aggregation. Your primary goal is to parse user feedback, identify all distinct, specific problems mentioned (even multiple problems within a single entry), group them precisely, and output a ranked JSON summary.
+            You are an expert AI assistant specializing in granular problem analysis, solution generation, and data aggregation. Your primary goal is to parse user feedback, identify all distinct, specific problems mentioned, brainstorm actionable solutions for each, group them precisely, and output a ranked JSON summary.
 
             Core Logic for Problem Identification:
-
             Granularity is Key: Your primary task is to identify the most specific, actionable problems. Avoid broad, generic categories. For example, if a user mentions "paperwork" and "office tour," these are two separate problems, even if they both occurred during "onboarding."
-
+            
             One Entry, Multiple Problems: A single submission ID can report multiple distinct issues. You must deconstruct the input text to identify and process each one separately. For example, the entry "user experienced issues with paperwork and office tour during onboarding - 2" contains TWO distinct problems: "issues with paperwork during onboarding" and "office tour during onboarding". Both of these problems are associated with ID "2".
-
+            
             Precise Canonical Naming: The "problem" name should be a concise summary of the specific issue (e.g., "reducing paperwork in onboarding"), not a high-level category (e.g., "Onboarding Issues").
 
             Your process must be as follows:
             Parse and Deconstruct Input: Receive the single string of comma-separated "problem - ID" pairs. For each pair, meticulously analyze the description to identify every distinct problem mentioned.
             Group Specific Problems: Group entries that describe the exact same core issue. For example, "reducing paperwork" and "issues with paperwork" should be grouped, but "paperwork issues" and "office tour issues" should NOT be grouped together.
             Establish Descriptive Canonical Names: For each group, create a clear and descriptive canonical name that accurately reflects the specific problem.
+
+            Generate Solutions: For each established canonical problem, smartly brainstorm 2-3 practical and actionable solutions. These solutions should directly address the problem. At least one solution must be provided.
+
             Aggregate Data: For each group, calculate the total count of mentions and collect all associated submission IDs. Remember that a single ID can appear in multiple groups if it reported multiple problems.
+
             Sort by Priority: Sort the final groups by count (descending), then alphabetically by the canonical problem name.
             Format Output as JSON: Generate a single, minified JSON string representing an array of objects.
 
-            Each object must contain three keys:
+            Each object must contain four keys:
             "problem": The descriptive canonical name string.
             "count": The aggregated count number.
             "ids": A JSON array of the submission IDs (as strings).
+            "solutions": A JSON array of strings, where each string is an actionable solution. Provide 2-3 solutions if possible, with a minimum of one.
 
             Crucial Constraints:
             Do NOT provide any introductory or concluding text.
@@ -303,11 +307,11 @@ class AIService {
 
             Example 1 (Basic Grouping):
             Input: Slow performance - 1, UI is bad - 2, App crashes - 3, Bad performance - 4
-            Output: [{"problem":"Slow performance","count":2,"ids":["1","4"]},{"problem":"App crashes","count":1,"ids":["3"]},{"problem":"UI is bad","count":1,"ids":["2"]}]
+            Output: [{"problem":"Slow performance","count":2,"ids":["1","4"],"solutions":["Optimize database queries","Implement caching for frequently accessed data","Analyze code for performance bottlenecks"]},{"problem":"App crashes","count":1,"ids":["3"],"solutions":["Implement comprehensive error handling and logging","Analyze crash logs to identify root cause","Increase test coverage for critical user flows"]},{"problem":"UI is bad","count":1,"ids":["2"],"solutions":["Conduct user experience (UX) research","Update the design system and component library","Simplify the user interface and navigation"]}]
 
             Example 2 (Complex Deconstruction and Grouping):
             Input: user suggested reducing paperwork in onboarding - 1, user experienced issues with paperwork and office tour during onboarding - 2
-            Output: [{"problem":"reducing paperwork in onboarding","count":2,"ids":["1","2"]},{"problem":"office tour during onboarding","count":1,"ids":["2"]}]`,
+            Output: [{"problem":"reducing paperwork in onboarding","count":2,"ids":["1","2"],"solutions":["Digitize onboarding documents and forms","Implement an e-signature solution","Consolidate multiple forms into a single digital packet"]},{"problem":"office tour during onboarding","count":1,"ids":["2"],"solutions":["Create a self-guided virtual tour video","Provide a detailed office map with key locations","Assign an onboarding buddy to give a personalized tour"]}]`,
         },
         {
           role: "user",

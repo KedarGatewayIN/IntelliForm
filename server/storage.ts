@@ -228,9 +228,11 @@ export class DatabaseStorage implements IStorage {
   async getAllSubmissions({
     offset = 0,
     limit = 10,
+    userId,
   }: {
     offset?: number;
     limit?: number;
+    userId: string;
   }): Promise<(Submission & { formTitle: string | null })[]> {
     const allSubs = await db
       .select({
@@ -246,6 +248,7 @@ export class DatabaseStorage implements IStorage {
       })
       .from(submissions)
       .leftJoin(forms, eq(submissions.formId, forms.id))
+      .where(eq(forms.userId, userId))
       .orderBy(desc(submissions.completedAt))
       .offset(offset)
       .limit(limit);
@@ -253,8 +256,11 @@ export class DatabaseStorage implements IStorage {
     return allSubs;
   }
 
-  async countAllSubmissions(): Promise<number> {
-    const [result] = await db.select({ count: count() }).from(submissions);
+  async countAllSubmissions({ userId }: { userId: string }): Promise<number> {
+    const [result] = await db
+      .select({ count: count() })
+      .from(submissions)
+      .where(eq(forms.userId, userId));
     return result.count || 0;
   }
 
@@ -324,7 +330,6 @@ export class DatabaseStorage implements IStorage {
         and(eq(submissions.resolved, false), isNotNull(submissions.aiProblem))
       );
 
-
     const unresolvedProblems = aiProblems
       .map((row) => `${row.aiProblem} - ${row.id}`)
       .join(", ");
@@ -348,7 +353,6 @@ export class DatabaseStorage implements IStorage {
 
       return {
         ...p,
-        // formName: Array.from(new Set(matchingForms.map((f) => f.title))),
         form: matchingForms.map((f) => ({
           form_id: f.form_id,
           title: f.title,
