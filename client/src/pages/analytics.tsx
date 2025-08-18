@@ -78,7 +78,7 @@ const AnalyticsPage: React.FC = () => {
                 <TableBody>
                   {forms.map((form) => (
                     <TableRow key={form.id} className="hover:bg-gray-50">
-                      <TableCell>{form.title}</TableCell>
+                      <TableCell className="font-bold">{form.title}</TableCell>
                       <TableCell>
                         <Tooltip>
                           <TooltipTrigger asChild>

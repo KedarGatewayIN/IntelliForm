@@ -85,6 +85,12 @@ function SimplePagination({
   );
 }
 
+const formatDuration = (seconds: number) => {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${minutes}m ${remainingSeconds}s`;
+};
+
 export default function RecentSubmissionsPage() {
   const [page, setPage] = useState(1);
   const [, navigate] = useLocation();
@@ -141,17 +147,19 @@ export default function RecentSubmissionsPage() {
                       <TableHead>Form Name</TableHead>
                       <TableHead>Submitted At</TableHead>
                       <TableHead>IP Address</TableHead>
+                      <TableHead>Time Taken</TableHead>
                       <TableHead>Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {data?.submissions.map((sub) => (
                       <TableRow key={sub.id}>
-                        <TableCell>{sub.formTitle}</TableCell>
+                        <TableCell className="font-bold">{sub.formTitle}</TableCell>
                         <TableCell>
                           {new Date(sub.completedAt).toLocaleString()}
                         </TableCell>
                         <TableCell>{sub.ipAddress || "-"}</TableCell>
+                        <TableCell>{formatDuration(sub.timeTaken!)}</TableCell>
                         <TableCell>
                           <TooltipProvider>
                             <div className="flex gap-2">

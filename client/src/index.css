@@ -17,12 +17,31 @@
   --primary-foreground: hsl(211, 100%, 99%);
   --secondary: hsl(269, 83%, 67%);
   --secondary-foreground: hsl(24, 9.8%, 10%);
-  --accent: hsl(158, 64%, 52%);
-  --accent-foreground: hsl(24, 9.8%, 10%);
+  /* Align accent with brand primary (purple) for hover/ghost/outline states */
+  --accent: var(--primary);
+  --accent-foreground: var(--primary-foreground);
   --destructive: hsl(0, 84.2%, 60.2%);
   --destructive-foreground: hsl(60, 9.1%, 97.8%);
-  --ring: hsl(20, 14.3%, 4.1%);
+  /* Make focus rings match brand */
+  --ring: var(--primary);
   --radius: 0.5rem;
+
+  /* Chart palette (purple-forward) */
+  --chart-1: hsl(262, 83%, 58%);
+  --chart-2: hsl(246, 83%, 67%);
+  --chart-3: hsl(275, 74%, 60%);
+  --chart-4: hsl(289, 65%, 60%);
+  --chart-5: hsl(230, 73%, 66%);
+
+  /* Sidebar inherits brand tokens */
+  --sidebar-background: var(--background);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
 }
 
 .dark {
@@ -40,12 +59,29 @@
   --primary-foreground: hsl(211, 100%, 99%);
   --secondary: hsl(269, 83%, 67%);
   --secondary-foreground: hsl(0, 0%, 98%);
-  --accent: hsl(158, 64%, 52%);
-  --accent-foreground: hsl(0, 0%, 98%);
+  --accent: var(--primary);
+  --accent-foreground: var(--primary-foreground);
   --destructive: hsl(0, 62.8%, 30.6%);
   --destructive-foreground: hsl(0, 0%, 98%);
-  --ring: hsl(240, 4.9%, 83.9%);
+  --ring: var(--primary);
   --radius: 0.5rem;
+
+  /* Chart palette tuned for dark theme */
+  --chart-1: hsl(262, 83%, 70%);
+  --chart-2: hsl(246, 83%, 75%);
+  --chart-3: hsl(275, 74%, 72%);
+  --chart-4: hsl(289, 65%, 72%);
+  --chart-5: hsl(230, 73%, 74%);
+
+  /* Sidebar inherits brand tokens in dark */
+  --sidebar-background: var(--background);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
 }
 
 @layer base {
