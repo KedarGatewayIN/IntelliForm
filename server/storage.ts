@@ -52,6 +52,37 @@ export interface IStorage {
   saveAIConversation(
     conversation: InsertAIConversation
   ): Promise<AIConversation>;
+
+  // Search
+  searchAll(options: {
+    userId: string;
+    query: string;
+    limitPerType?: number;
+  }): Promise<
+    Array<
+      | {
+          type: "form";
+          id: string;
+          title: string;
+          description?: string | null;
+        }
+      | {
+          type: "submission";
+          id: string; // submissionId
+          formId: string;
+          title: string | null; // form title
+          snippet?: string | null;
+        }
+      | {
+          type: "ai_conversation";
+          id: string; // conversationId
+          submissionId: string;
+          formId: string;
+          title: string | null; // form title
+          snippet?: string | null;
+        }
+    >
+  >;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -148,7 +179,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createForm(form: InsertForm): Promise<Form> {
-    const [newForm] = await db.insert(forms).values(form).returning();
+    const [newForm] = await db.insert(forms).values(form as any).returning();
     return newForm;
   }
 
@@ -403,10 +434,122 @@ export class DatabaseStorage implements IStorage {
   ): Promise<AIConversation> {
     const [newConversation] = await db
       .insert(aiConversations)
-      .values(conversation)
+      .values(conversation as any)
       .returning();
 
     return newConversation;
+  }
+
+  async searchAll({
+    userId,
+    query,
+    limitPerType = 5,
+  }: {
+    userId: string;
+    query: string;
+    limitPerType?: number;
+  }): Promise<
+    Array<
+      | {
+          type: "form";
+          id: string;
+          title: string;
+          description?: string | null;
+        }
+      | {
+          type: "submission";
+          id: string;
+          formId: string;
+          title: string | null;
+          snippet?: string | null;
+        }
+      | {
+          type: "ai_conversation";
+          id: string;
+          submissionId: string;
+          formId: string;
+          title: string | null;
+          snippet?: string | null;
+        }
+    >
+  > {
+    const like = `%${query}%`;
+
+    // Forms owned by the user
+    const formsSql = `
+      SELECT f.id, f.title, f.description
+      FROM forms f
+      WHERE f.user_id = $1 AND (f.title ILIKE $2 OR f.description ILIKE $2)
+      ORDER BY f.updated_at DESC
+      LIMIT $3
+    `;
+
+    // Submissions belonging to user's forms
+    const submissionsSql = `
+      SELECT s.id, s.form_id as "formId", f.title, LEFT(s.data::text, 160) as snippet
+      FROM submissions s
+      JOIN forms f ON f.id = s.form_id
+      WHERE f.user_id = $1 AND (s.data::text ILIKE $2)
+      ORDER BY s.completed_at DESC
+      LIMIT $3
+    `;
+
+    // AI conversations belonging to user's forms
+    const aiSql = `
+      SELECT ac.id, ac.submission_id as "submissionId", s.form_id as "formId", f.title, LEFT(ac.messages::text, 160) as snippet
+      FROM ai_conversations ac
+      JOIN submissions s ON s.id = ac.submission_id
+      JOIN forms f ON f.id = s.form_id
+      WHERE f.user_id = $1 AND (ac.messages::text ILIKE $2)
+      ORDER BY ac.created_at DESC
+      LIMIT $3
+    `;
+
+    const [formsRes, submissionsRes, aiRes] = await Promise.all([
+      pool.query<{ id: string; title: string; description: string | null }>(
+        formsSql,
+        [userId, like, limitPerType]
+      ),
+      pool.query<{
+        id: string;
+        formId: string;
+        title: string | null;
+        snippet: string | null;
+      }>(submissionsSql, [userId, like, limitPerType]),
+      pool.query<{
+        id: string;
+        submissionId: string;
+        formId: string;
+        title: string | null;
+        snippet: string | null;
+      }>(aiSql, [userId, like, limitPerType]),
+    ]);
+
+    const formsResults = formsRes.rows.map((r) => ({
+      type: "form" as const,
+      id: r.id,
+      title: r.title,
+      description: r.description,
+    }));
+
+    const submissionsResults = submissionsRes.rows.map((r) => ({
+      type: "submission" as const,
+      id: r.id,
+      formId: r.formId,
+      title: r.title,
+      snippet: r.snippet,
+    }));
+
+    const aiResults = aiRes.rows.map((r) => ({
+      type: "ai_conversation" as const,
+      id: r.id,
+      submissionId: r.submissionId,
+      formId: r.formId,
+      title: r.title,
+      snippet: r.snippet,
+    }));
+
+    return [...formsResults, ...submissionsResults, ...aiResults];
   }
 }
 

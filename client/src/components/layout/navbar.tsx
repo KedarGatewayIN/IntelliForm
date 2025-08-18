@@ -17,10 +17,39 @@ import {
 } from "lucide-react";
 import { usePathname } from "wouter/use-browser-location";
 import clsx from "clsx";
+import { useEffect, useRef, useState } from "react";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import { Search } from "lucide-react";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState<
+    Array<
+      | { type: "form"; id: string; title: string; description?: string | null }
+      | {
+          type: "submission";
+          id: string;
+          formId: string;
+          title: string | null;
+          snippet?: string | null;
+        }
+      | {
+          type: "ai_conversation";
+          id: string;
+          submissionId: string;
+          formId: string;
+          title: string | null;
+          snippet?: string | null;
+        }
+    >
+  >([]);
+  const abortRef = useRef<AbortController | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   const navItems = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -28,6 +57,56 @@ export default function Navbar() {
     { href: "/analytics", label: "Analytics", icon: BarChart3 },
     { href: "/todo", label: "Todo", icon: CheckCircle },
   ];
+
+  useEffect(() => {
+    if (!query) {
+      setResults([]);
+      setLoading(false);
+      abortRef.current?.abort();
+      return;
+    }
+
+    const handle = setTimeout(async () => {
+      try {
+        setLoading(true);
+        abortRef.current?.abort();
+        const ac = new AbortController();
+        abortRef.current = ac;
+        const resp = await fetch(
+          `/api/search?q=${encodeURIComponent(query)}&limit=5`,
+          {
+            credentials: "include",
+            signal: ac.signal,
+          }
+        );
+        if (!resp.ok) {
+          setResults([]);
+        } else {
+          const json = await resp.json();
+          setResults(json.results ?? []);
+        }
+      } catch (_e) {
+        // ignore aborts/errors silently for UX
+      } finally {
+        setLoading(false);
+      }
+    }, 250);
+
+    return () => {
+      clearTimeout(handle);
+    };
+  }, [query]);
+
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      if (!containerRef.current) return;
+      if (!containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
@@ -48,7 +127,7 @@ export default function Navbar() {
                 IntelliForm
               </span>
             </Link>
-            <nav className="hidden md:ml-10 md:flex space-x-8">
+            <nav className="hidden md:ml-10 md:flex items-center gap-2">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive =
@@ -60,10 +139,10 @@ export default function Navbar() {
                     key={item.href}
                     href={item.href}
                     className={clsx(
-                      "flex items-center gap-2 font-medium transition-colors",
+                      "flex items-center gap-2 font-medium transition-colors px-3 py-2 rounded-md",
                       isActive
-                        ? "text-primary"
-                        : "text-gray-500 hover:text-gray-900"
+                        ? "bg-primary/10 text-primary"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
                     )}
                   >
                     <Icon className="h-4 w-4" />
@@ -86,7 +165,132 @@ export default function Navbar() {
             </nav>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-4" ref={containerRef}>
+            <div className="relative w-96 lg:w-40 hidden md:block">
+              <Input
+                type="text"
+                className="pl-10"
+                value={query}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setQuery(val);
+                  setOpen(!!val);
+                }}
+                placeholder="Search…"
+                onFocus={() => setOpen(query.length > 0)}
+              />
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg
+                  className="h-4 w-4 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </div>
+              {open && (
+                <div
+                  className={cn(
+                    "absolute mt-2 w-full rounded-lg border border-gray-200 bg-white shadow-xl z-50 max-h-96 overflow-auto",
+                    loading ? "opacity-100" : ""
+                  )}
+                >
+                  <div className="px-3 py-2 text-xs text-gray-500">
+                    {loading
+                      ? "Searching…"
+                      : results.length === 0
+                      ? "No results"
+                      : "Results"}
+                  </div>
+                  <ul className="divide-y divide-gray-100">
+                    {results.map((r) => {
+                      if (r.type === "form") {
+                        return (
+                          <li
+                            key={`form-${r.id}`}
+                            className="px-3 py-2 hover:bg-gray-50"
+                          >
+                            <Link
+                              href={`/forms/${r.id}/edit`}
+                              className="flex flex-col"
+                              onClick={() => {
+                                setOpen(false);
+                                setQuery("");
+                              }}
+                            >
+                              <span className="text-sm font-medium text-gray-900">
+                                Form • {r.title}
+                              </span>
+                              {r.description ? (
+                                <span className="text-xs text-gray-600 line-clamp-1">
+                                  {r.description}
+                                </span>
+                              ) : null}
+                            </Link>
+                          </li>
+                        );
+                      }
+                      if (r.type === "submission") {
+                        return (
+                          <li
+                            key={`sub-${r.id}`}
+                            className="px-3 py-2 hover:bg-gray-50"
+                          >
+                            <Link
+                              href={`/forms/${r.formId}/responses/${r.id}`}
+                              className="flex flex-col"
+                              onClick={() => {
+                                setOpen(false);
+                                setQuery("");
+                              }}
+                            >
+                              <span className="text-sm font-medium text-gray-900">
+                                Submission • {r.title ?? "Untitled form"}
+                              </span>
+                              {r.snippet ? (
+                                <span className="text-xs text-gray-600 line-clamp-1">
+                                  {r.snippet}
+                                </span>
+                              ) : null}
+                            </Link>
+                          </li>
+                        );
+                      }
+                      return (
+                        <li
+                          key={`ai-${r.id}`}
+                          className="px-3 py-2 hover:bg-gray-50"
+                        >
+                          <Link
+                            href={`/forms/${r.formId}/responses/${r.submissionId}`}
+                            className="flex flex-col"
+                            onClick={() => {
+                              setOpen(false);
+                              setQuery("");
+                            }}
+                          >
+                            <span className="text-sm font-medium text-gray-900">
+                              AI Conversation • {r.title ?? "Untitled form"}
+                            </span>
+                            {r.snippet ? (
+                              <span className="text-xs text-gray-600 line-clamp-1">
+                                {r.snippet}
+                              </span>
+                            ) : null}
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+            </div>
             <Link href="/forms/new">
               <Button>
                 <PlusIcon className="h-4 w-4 mr-2" />

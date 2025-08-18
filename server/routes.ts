@@ -362,6 +362,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Global search (authenticated)
+  app.get("/api/search", auth, async (req, res) => {
+    try {
+      const q = (req.query.q as string) ?? "";
+      const limit = parseInt((req.query.limit as string) ?? "5", 10);
+      if (!q || q.trim().length === 0) {
+        return res.json({ results: [] });
+      }
+
+      const results = await storage.searchAll({
+        userId: req.userId!,
+        query: q.trim(),
+        limitPerType: Math.min(Math.max(limit, 1), 20),
+      });
+
+      res.json({ results });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to search" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
