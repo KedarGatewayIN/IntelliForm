@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Form, FormField } from "@shared/schema";
 import { ArrowLeftIcon, CopyIcon, EyeIcon, SaveIcon, ShareIcon, Trash } from "lucide-react";
+import { useTitle } from "@/hooks/use-title";
 
 export default function FormBuilder() {
   const params = useParams();
@@ -34,6 +35,8 @@ export default function FormBuilder() {
       loadForm();
     }
   }, [isEditing, params.id]);
+
+  useTitle(isEditing ? (form.title || "Edit Form") : "Create Form");
 
   const loadForm = async () => {
     setIsLoading(true);

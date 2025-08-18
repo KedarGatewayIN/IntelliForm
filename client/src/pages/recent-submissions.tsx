@@ -20,6 +20,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useTitle } from "@/hooks/use-title";
 
 interface Submission {
   id: string;
@@ -92,6 +93,7 @@ const formatDuration = (seconds: number) => {
 };
 
 export default function RecentSubmissionsPage() {
+  useTitle("Recent Submissions");
   const [page, setPage] = useState(1);
   const [, navigate] = useLocation();
   const { data, isLoading } = useQuery<PaginatedSubmissions>({

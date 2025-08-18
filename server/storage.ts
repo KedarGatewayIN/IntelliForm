@@ -150,6 +150,7 @@ export class DatabaseStorage implements IStorage {
               'completedAt', s.completed_at,
               'timeTaken', s.time_taken,
               'aiProblem', s.ai_problem,
+              'aiSolutions', s.ai_solutions,
               'resolved', s.resolved,
               'ipAddress', s.ip_address,
               'resolutionComment', s.resolution_comment
@@ -230,6 +231,7 @@ export class DatabaseStorage implements IStorage {
       const sentiment = JSON.parse(aiResponse) as unknown as {
         action: "action_needed" | "no_action_needed";
         reason?: string;
+        solutions?: string[];
       };
       this.updateSubmission(newSubmission.id, {
         formId: submission.formId,
@@ -238,6 +240,9 @@ export class DatabaseStorage implements IStorage {
         ipAddress: submission.ipAddress,
         resolved: false,
         aiProblem: sentiment?.reason,
+        aiSolutions: Array.isArray(sentiment?.solutions)
+          ? sentiment.solutions.slice(0, 3)
+          : [],
       });
     });
 
@@ -307,6 +312,7 @@ export class DatabaseStorage implements IStorage {
         completedAt: submissions.completedAt,
         timeTaken: submissions.timeTaken,
         aiProblem: submissions.aiProblem,
+        aiSolutions: submissions.aiSolutions,
         resolved: submissions.resolved,
         ipAddress: submissions.ipAddress,
         resolutionComment: submissions.resolutionComment,

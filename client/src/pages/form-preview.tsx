@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { Form } from "@shared/schema";
 import { useEffect, useState } from "react";
+import { useTitle } from "@/hooks/use-title";
 
 export default function FormPreview({
   showHeader = true,
@@ -47,6 +48,8 @@ export default function FormPreview({
       });
     })();
   }, []);
+
+  useTitle(state.form?.title ? `${state.form.title} (Preview)` : "Form Preview");
 
   useEffect(() => {
     if (answers && Object.keys(answers).length > 0) {

@@ -35,6 +35,7 @@ import {
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
+import { useTitle } from "@/hooks/use-title";
 
 interface IAiConversation {
   submissionId: string;
@@ -528,6 +529,8 @@ export default function ConversationalForm() {
   useEffect(() => {
     loadForm();
   }, [id]);
+
+  useTitle(form?.title ? `${form.title}` : "Form");
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Form } from "@shared/schema";
 import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react";
+import { useTitle } from "@/hooks/use-title";
 
 export default function FormStepper() {
   const params = useParams();
@@ -23,6 +24,8 @@ export default function FormStepper() {
   useEffect(() => {
     loadForm();
   }, [params.id]);
+
+  useTitle(form?.title ? `${form.title} — Step-by-step` : "Form");
 
   const loadForm = async () => {
     setIsLoading(true);

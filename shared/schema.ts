@@ -30,6 +30,7 @@ export const submissions = pgTable("submissions", {
   completedAt: timestamp("completed_at").default(sql`now()`).notNull(),
   timeTaken: integer("time_taken"), // in seconds
   aiProblem: text("ai_problem"),
+  aiSolutions: json("ai_solutions").$type<string[]>().notNull().default(sql`'[]'::json`),
   resolved: boolean("resolved").notNull().default(false),
   ipAddress: text("ip_address"),
   resolutionComment: text("resolution_comment"),

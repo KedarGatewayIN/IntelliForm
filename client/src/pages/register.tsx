@@ -10,11 +10,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
+import { useTitle } from "@/hooks/use-title";
 import type { z } from "zod";
 
 type RegisterForm = z.infer<typeof registerSchema>;
 
 export default function Register() {
+  useTitle("Register");
   const [, navigate] = useLocation();
   const { setUser } = useAuth();
   const { toast } = useToast();

@@ -24,8 +24,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useTitle } from "@/hooks/use-title";
 
 const TodoPage: React.FC = () => {
+  useTitle("Action Items");
   const [, navigate] = useLocation();
 
   const { data: problems, isLoading: problemsLoading } = {

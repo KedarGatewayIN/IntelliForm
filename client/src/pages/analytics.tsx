@@ -18,8 +18,10 @@ import {
   TooltipContent,
 } from "@/components/ui/tooltip";
 import { BarChart3, BarChart } from "lucide-react";
+import { useTitle } from "@/hooks/use-title";
 
 const AnalyticsPage: React.FC = () => {
+  useTitle("Analytics");
   const [forms, setForms] = useState<Form[]>([]);
   const [loading, setLoading] = useState(true);
   const [, navigate] = useLocation();

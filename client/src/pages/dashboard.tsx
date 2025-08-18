@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import Navbar from "@/components/layout/navbar";
+import { useTitle } from "@/hooks/use-title";
 import { useForms } from "@/hooks/use-forms";
 import {
   PlusIcon,
@@ -17,6 +18,7 @@ import {
 } from "lucide-react";
 
 export default function Dashboard() {
+  useTitle("Dashboard");
   const { data: forms = [], isLoading } = useForms();
   const [, navigate] = useLocation();
 

@@ -58,6 +58,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { useTitle } from "@/hooks/use-title";
 
 interface IFormAnalytics {
   totalResponses: number;
@@ -86,6 +87,7 @@ interface ISubmission {
   completedAt: string;
   timeTaken: number;
   aiProblem: string;
+  aiSolutions: string[];
   resolved: boolean;
   ipAddress: string;
   resolutionComment?: string;
@@ -299,6 +301,8 @@ export default function FormAnalytics() {
     );
   }
 
+  useTitle(form?.title ? `${form.title} — Analytics` : "Form Analytics");
+
   const stats = analytics || {
     totalResponses: 0,
     completionRate: 0,
@@ -495,8 +499,8 @@ export default function FormAnalytics() {
                                   <TooltipTrigger asChild>
                                     {!submission.aiProblem ||
                                     submission.resolved ? (
-                                      <Button variant="outline" size="sm">
-                                        <CheckCheck className="h-4 w-4 text-green-600 cursor-pointer" />
+                                      <Button variant="greenOutline" size="sm">
+                                        <CheckCheck className="h-4 w-4 cursor-pointer" />
                                       </Button>
                                     ) : (
                                       <Button
@@ -589,87 +593,35 @@ export default function FormAnalytics() {
                                       </CardHeader>
                                       <CardContent className="pt-0">
                                         <div className="bg-white rounded-md p-4 border border-blue-100">
-                                          <div className="space-y-3">
-                                            {submission.aiProblem
-                                              ?.toLowerCase()
-                                              .includes("unclear") ||
-                                            submission.aiProblem
-                                              ?.toLowerCase()
-                                              .includes("confusing") ? (
-                                              <div className="flex items-start gap-3">
-                                                <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                                  <span className="text-xs font-bold text-blue-600">
-                                                    1
-                                                  </span>
-                                                </div>
-                                                <div>
-                                                  <p className="font-medium text-sm text-gray-900">
-                                                    Clarify Question Wording
-                                                  </p>
-                                                  <p className="text-sm text-gray-600">
-                                                    Revise ambiguous language
-                                                    and add context to help
-                                                    users understand what's
-                                                    expected.
-                                                  </p>
-                                                </div>
-                                              </div>
-                                            ) : (
-                                              <div className="flex items-start gap-3">
-                                                <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                                  <span className="text-xs font-bold text-blue-600">
-                                                    1
-                                                  </span>
-                                                </div>
-                                                <div>
-                                                  <p className="font-medium text-sm text-gray-900">
-                                                    Improve Field Guidance
-                                                  </p>
-                                                  <p className="text-sm text-gray-600">
-                                                    Add helpful placeholders and
-                                                    examples to set clear
-                                                    expectations.
-                                                  </p>
-                                                </div>
-                                              </div>
-                                            )}
-
-                                            <div className="flex items-start gap-3">
-                                              <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                                <span className="text-xs font-bold text-blue-600">
-                                                  2
-                                                </span>
-                                              </div>
-                                              <div>
-                                                <p className="font-medium text-sm text-gray-900">
-                                                  Add Input Validation
-                                                </p>
-                                                <p className="text-sm text-gray-600">
-                                                  Implement real-time validation
-                                                  to catch issues before AI
-                                                  assistance is needed.
-                                                </p>
-                                              </div>
+                                          {submission.aiSolutions &&
+                                          submission.aiSolutions.length > 0 ? (
+                                            <div className="space-y-3">
+                                              {submission.aiSolutions
+                                                .slice(0, 3)
+                                                .map((solution, idx) => (
+                                                  <div
+                                                    key={idx}
+                                                    className="flex items-start gap-3"
+                                                  >
+                                                    <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                      <span className="text-xs font-bold text-blue-600">
+                                                        {idx + 1}
+                                                      </span>
+                                                    </div>
+                                                    <div>
+                                                      <p className="text-sm text-gray-700 leading-relaxed">
+                                                        {solution}
+                                                      </p>
+                                                    </div>
+                                                  </div>
+                                                ))}
                                             </div>
-
-                                            <div className="flex items-start gap-3">
-                                              <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                                <span className="text-xs font-bold text-blue-600">
-                                                  3
-                                                </span>
-                                              </div>
-                                              <div>
-                                                <p className="font-medium text-sm text-gray-900">
-                                                  Optimize Form Flow
-                                                </p>
-                                                <p className="text-sm text-gray-600">
-                                                  Break complex sections into
-                                                  smaller, more manageable
-                                                  steps.
-                                                </p>
-                                              </div>
-                                            </div>
-                                          </div>
+                                          ) : (
+                                            <p className="text-sm text-gray-600">
+                                              No AI solutions were generated for
+                                              this submission.
+                                            </p>
+                                          )}
                                         </div>
                                       </CardContent>
                                     </Card>

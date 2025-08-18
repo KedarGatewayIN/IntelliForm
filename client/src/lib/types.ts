@@ -50,6 +50,7 @@ export interface Submission {
   ipAddress?: string;
   resolved?: boolean;
   aiProblem?: string | null;
+  aiSolutions?: string[];
   resolutionComment?: string | null;
   aiConversations?: AIConversation[];
 }
