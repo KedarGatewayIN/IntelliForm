@@ -55,6 +55,7 @@ export const submissions = pgTable("submissions", {
 	ipAddress: text("ip_address"),
 	aiProblem: text("ai_problem"),
 	resolved: boolean().default(false).notNull(),
+	resolutionComment: text("resolution_comment"),
 }, (table) => [
 	foreignKey({
 			columns: [table.formId],

@@ -10,7 +10,7 @@ import PropertiesPanel from "@/components/form-builder/properties-panel";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Form, FormField } from "@shared/schema";
-import { ArrowLeftIcon, EyeIcon, SaveIcon, ShareIcon, Trash } from "lucide-react";
+import { ArrowLeftIcon, CopyIcon, EyeIcon, SaveIcon, ShareIcon, Trash } from "lucide-react";
 
 export default function FormBuilder() {
   const params = useParams();
@@ -232,6 +232,7 @@ export default function FormBuilder() {
                 onClick={copyEmbedCode}
                 disabled={!isEditing}
               >
+                <CopyIcon className="h-4 w-4 mr-2" />
                 Copy Embed Code
               </Button>
               <Button
@@ -244,7 +245,7 @@ export default function FormBuilder() {
                 Preview
               </Button>
               <Button
-                variant="green"
+                variant="greenOutline"
                 size="sm"
                 onClick={saveForm}
                 disabled={isSaving}
@@ -261,7 +262,7 @@ export default function FormBuilder() {
                 Publish
               </Button>
               <Button
-                variant='destructive'
+                variant='destructiveOutline'
                 size="sm"
                 onClick={deleteForm}
                 disabled={!form.fields?.length || !isEditing}

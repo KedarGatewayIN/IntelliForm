@@ -268,12 +268,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   app.put("/api/submission/:sid", auth, async (req, res) => {
     try {
-      const submissions = await storage.getFormSubmission(req.params.sid);
-      await storage.updateSubmission(req.params.sid, {
-        ...submissions,
+      const body = req.body as { resolved?: boolean; resolutionComment?: string };
+
+      if (body && body.resolved === true) {
+        const comment = (body.resolutionComment ?? "").trim();
+        if (!comment) {
+          return res.status(400).json({ message: "resolutionComment is required when resolving" });
+        }
+      }
+
+      const updated = await storage.updateSubmission(req.params.sid, {
         ...req.body,
       });
-      res.json(submissions);
+      res.json(updated);
     } catch (error) {
       res.status(500).json({ message: "Failed to get submissions" });
     }

@@ -32,6 +32,7 @@ export const submissions = pgTable("submissions", {
   aiProblem: text("ai_problem"),
   resolved: boolean("resolved").notNull().default(false),
   ipAddress: text("ip_address"),
+  resolutionComment: text("resolution_comment"),
 });
 
 export const aiConversations = pgTable("ai_conversations", {

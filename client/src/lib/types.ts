@@ -48,6 +48,9 @@ export interface Submission {
   completedAt: string;
   timeTaken?: number;
   ipAddress?: string;
+  resolved?: boolean;
+  aiProblem?: string | null;
+  resolutionComment?: string | null;
   aiConversations?: AIConversation[];
 }
 

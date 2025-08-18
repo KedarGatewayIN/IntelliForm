@@ -151,7 +151,8 @@ export class DatabaseStorage implements IStorage {
               'timeTaken', s.time_taken,
               'aiProblem', s.ai_problem,
               'resolved', s.resolved,
-              'ipAddress', s.ip_address
+              'ipAddress', s.ip_address,
+              'resolutionComment', s.resolution_comment
             )
           ) FILTER (WHERE s.id IS NOT NULL),
           '[]'
@@ -308,6 +309,7 @@ export class DatabaseStorage implements IStorage {
         aiProblem: submissions.aiProblem,
         resolved: submissions.resolved,
         ipAddress: submissions.ipAddress,
+        resolutionComment: submissions.resolutionComment,
         formTitle: forms.title,
       })
       .from(submissions)

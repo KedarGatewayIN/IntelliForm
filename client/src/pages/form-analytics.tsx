@@ -1,4 +1,5 @@
 import { useParams, useLocation } from "wouter";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,6 +35,9 @@ import {
   TooltipTrigger,
   TooltipProvider,
 } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogTrigger,
@@ -76,6 +80,7 @@ interface ISubmission {
   aiProblem: string;
   resolved: boolean;
   ipAddress: string;
+  resolutionComment?: string;
   aiConversations: {
     id: string;
     submissionId: string;
@@ -102,6 +107,12 @@ export default function FormAnalytics() {
     });
   const queryClient = useQueryClient();
   const { setUser } = useAuth();
+
+  const [resolvePopover, setResolvePopover] = useState<{
+    submissionId: string | null;
+    anchor: "row" | "dialog" | null;
+  }>({ submissionId: null, anchor: null });
+  const [resolutionComment, setResolutionComment] = useState<string>("");
 
   const { data: submissions, isLoading: submissionsLoading } = useQuery<
     ISubmission[]
@@ -157,17 +168,61 @@ export default function FormAnalytics() {
 
   const updateSubmissionResolved = (
     submission_id: string,
-    resolved: boolean
+    resolved: boolean,
+    comment?: string,
+    anchor?: "row" | "dialog"
   ) => {
+    if (resolved) {
+      if (!comment || !comment.trim()) {
+        setResolvePopover({ submissionId: submission_id, anchor: anchor ?? "row" });
+        return;
+      }
+      apiRequest("PUT", `/api/submission/${submission_id}`, {
+        resolved,
+        resolutionComment: comment.trim(),
+      })
+        .then((resp) => resp.json())
+        .then((updated: ISubmission) => {
+          toast({
+            title: "Update Successful",
+            description: `Submission marked as resolved.`,
+          });
+          queryClient.setQueryData<ISubmission[]>(
+            ["/api/forms", params.id, "submissions"],
+            (old) => {
+              if (!old) return [];
+              return old.map((val) =>
+                val.id === submission_id
+                  ? { ...val, resolved: true, resolutionComment: comment.trim() }
+                  : val
+              );
+            }
+          );
+          setUser((prev) => {
+            prev!.todoCount -= 1;
+            return prev;
+          });
+          setResolvePopover({ submissionId: null, anchor: null });
+          setResolutionComment("");
+        })
+        .catch(() => {
+          toast({
+            title: "Update Failed",
+            description:
+              "Failed to update submission status. Please try again.",
+            variant: "destructive",
+          });
+        });
+      return;
+    }
+
     apiRequest("PUT", `/api/submission/${submission_id}`, {
       resolved,
     })
       .then(() => {
         toast({
           title: "Update Successful",
-          description: `Submission marked as ${
-            resolved ? "resolved" : "unresolved"
-          }.`,
+          description: `Submission marked as ${resolved ? "resolved" : "unresolved"}.`,
         });
         queryClient.setQueryData<ISubmission[]>(
           ["/api/forms", params.id, "submissions"],
@@ -182,11 +237,7 @@ export default function FormAnalytics() {
           }
         );
         setUser((prev) => {
-          if (resolved) {
-            prev!.todoCount -= 1;
-          } else {
-            prev!.todoCount += 1;
-          }
+          if (resolved) prev!.todoCount -= 1; else prev!.todoCount += 1;
           return prev;
         });
       })
@@ -430,8 +481,8 @@ export default function FormAnalytics() {
                                         <CheckCheck className="h-4 w-4 text-green-600 cursor-pointer" />
                                       </Button>
                                     ) : (
-                                      <Button variant="outline" size="sm">
-                                        <BadgeAlert className="h-4 w-4 text-red-600 cursor-pointer" />
+                                      <Button variant="destructiveOutline" size="sm">
+                                        <BadgeAlert className="h-4 w-4 cursor-pointer" />
                                       </Button>
                                     )}
                                   </TooltipTrigger>
@@ -522,38 +573,89 @@ export default function FormAnalytics() {
 
                                   {/* Footer */}
                                   <DialogFooter className="pt-4 border-t">
-                                    <DialogClose>
-                                      <div className="flex gap-4">
-                                        {!submission.aiProblem ? (
-                                          ""
-                                        ) : submission.resolved ? (
-                                          <Button
-                                            variant="destructive"
-                                            onClick={() => {
-                                              updateSubmissionResolved(
-                                                submission.id,
-                                                false
-                                              );
-                                            }}
-                                          >
-                                            Mark as Unresolved
-                                          </Button>
-                                        ) : (
-                                          <Button
-                                            variant="default"
-                                            onClick={() => {
-                                              updateSubmissionResolved(
-                                                submission.id,
-                                                true
-                                              );
-                                            }}
-                                          >
-                                            Mark as Resolved
-                                          </Button>
-                                        )}
+                                    <div className="flex gap-4">
+                                      {!submission.aiProblem ? (
+                                        ""
+                                      ) : submission.resolved ? (
+                                        <Button
+                                          variant="destructive"
+                                          onClick={() => {
+                                            updateSubmissionResolved(
+                                              submission.id,
+                                              false
+                                            );
+                                          }}
+                                        >
+                                          Mark as Unresolved
+                                        </Button>
+                                      ) : (
+                                        <Popover
+                                          open={resolvePopover.submissionId === submission.id && resolvePopover.anchor === "dialog"}
+                                          onOpenChange={(open) => {
+                                            if (!open) {
+                                              setResolvePopover({ submissionId: null, anchor: null });
+                                              setResolutionComment("");
+                                            }
+                                          }}
+                                        >
+                                          <PopoverTrigger asChild>
+                                            <Button
+                                              variant="default"
+                                              onClick={() => {
+                                                updateSubmissionResolved(
+                                                  submission.id,
+                                                  true,
+                                                  undefined,
+                                                  "dialog"
+                                                );
+                                              }}
+                                            >
+                                              Mark as Resolved
+                                            </Button>
+                                          </PopoverTrigger>
+                                          <PopoverContent className="w-80" align="end">
+                                            <div className="space-y-2">
+                                              <Label htmlFor={`resolution-${submission.id}`}>Resolution comment</Label>
+                                              <Textarea
+                                                id={`resolution-${submission.id}`}
+                                                value={resolutionComment}
+                                                onChange={(e) => setResolutionComment(e.target.value)}
+                                                placeholder="Add details about how you resolved this"
+                                                rows={4}
+                                              />
+                                              <div className="flex justify-end gap-2">
+                                                <Button
+                                                  variant="outline"
+                                                  size="sm"
+                                                  onClick={() => {
+                                                    setResolvePopover({ submissionId: null, anchor: null });
+                                                    setResolutionComment("");
+                                                  }}
+                                                >
+                                                  Cancel
+                                                </Button>
+                                                <Button
+                                                  size="sm"
+                                                  onClick={() => {
+                                                    updateSubmissionResolved(
+                                                      submission.id,
+                                                      true,
+                                                      resolutionComment
+                                                    );
+                                                  }}
+                                                  disabled={!resolutionComment.trim().length}
+                                                >
+                                                  Confirm
+                                                </Button>
+                                              </div>
+                                            </div>
+                                          </PopoverContent>
+                                        </Popover>
+                                      )}
+                                      <DialogClose asChild>
                                         <Button variant="outline">Close</Button>
-                                      </div>
-                                    </DialogClose>
+                                      </DialogClose>
+                                    </div>
                                   </DialogFooter>
                                 </DialogContent>
                               </Dialog>
@@ -584,26 +686,77 @@ export default function FormAnalytics() {
                               ""
                             ) : (
                               <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                      updateSubmissionResolved(
-                                        submission.id,
-                                        !submission.resolved
-                                      );
-                                    }}
-                                  >
-                                    <CheckCheck className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  Mark as{" "}
-                                  {submission.resolved
-                                    ? "unresolved"
-                                    : "resolved"}
-                                </TooltipContent>
+                                <Popover
+                                  open={resolvePopover.submissionId === submission.id && resolvePopover.anchor === "row"}
+                                  onOpenChange={(open) => {
+                                    if (!open) {
+                                      setResolvePopover({ submissionId: null, anchor: null });
+                                      setResolutionComment("");
+                                    }
+                                  }}
+                                >
+                                  <TooltipTrigger asChild>
+                                    <PopoverTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          updateSubmissionResolved(
+                                            submission.id,
+                                            !submission.resolved,
+                                            undefined,
+                                            "row"
+                                          );
+                                        }}
+                                      >
+                                        <CheckCheck className="h-4 w-4" />
+                                      </Button>
+                                    </PopoverTrigger>
+                                  </TooltipTrigger>
+                                  <PopoverContent className="w-80" align="end">
+                                    <div className="space-y-2">
+                                      <Label htmlFor={`resolution-${submission.id}`}>Resolution comment</Label>
+                                      <Textarea
+                                        id={`resolution-${submission.id}`}
+                                        value={resolutionComment}
+                                        onChange={(e) => setResolutionComment(e.target.value)}
+                                        placeholder="Add details about how you resolved this"
+                                        rows={4}
+                                      />
+                                      <div className="flex justify-end gap-2">
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => {
+                                            setResolvePopover({ submissionId: null, anchor: null });
+                                            setResolutionComment("");
+                                          }}
+                                        >
+                                          Cancel
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          onClick={() => {
+                                            updateSubmissionResolved(
+                                              submission.id,
+                                              true,
+                                              resolutionComment
+                                            );
+                                          }}
+                                          disabled={!resolutionComment.trim().length}
+                                        >
+                                          Confirm
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </PopoverContent>
+                                  <TooltipContent>
+                                    Mark as{" "}
+                                    {submission.resolved
+                                      ? "unresolved"
+                                      : "resolved"}
+                                  </TooltipContent>
+                                </Popover>
                               </Tooltip>
                             )}
                           </TooltipProvider>
