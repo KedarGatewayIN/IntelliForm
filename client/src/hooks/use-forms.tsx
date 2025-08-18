@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import type { Form } from "@shared/schema";
+import type { Form } from "@/lib/types";
 
 export function useForms() {
   return useQuery<Form[]>({

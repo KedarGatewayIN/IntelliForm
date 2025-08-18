@@ -171,12 +171,15 @@ export default function FormPreview({
             </div>
 
             {/* Preview Notice */}
-            <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-blue-800 text-sm">
-                <strong>Preview Mode:</strong> This is how your form will appear
-                to respondents. Fields are not interactive in preview mode.
-              </p>
-            </div>
+            {!showHeader && (
+              <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-blue-800 text-sm">
+                  <strong>Preview Mode:</strong> This is how your form will
+                  appear to respondents. Fields are not interactive in preview
+                  mode.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

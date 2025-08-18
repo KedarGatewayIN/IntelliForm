@@ -12,7 +12,7 @@ import {
   type AIConversation,
   type InsertAIConversation,
 } from "@shared/schema";
-import { db } from "./db";
+import { db, pool } from "./db";
 import {
   eq,
   desc,
@@ -31,9 +31,13 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  getUserTodoCount(userId: string): Promise<number>;
 
   // Form methods
-  getUserForms(userId: string): Promise<Form[]>;
+  getUserForms(userId: string): Promise<(Form & { 
+    submissions: Submission[]; 
+    aiConversationCount: number;
+  })[]>;
   getForm(id: string): Promise<Form | undefined>;
   createForm(form: InsertForm): Promise<Form>;
   updateForm(id: string, updates: Partial<Form>): Promise<Form>;
@@ -74,39 +78,68 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async getUserForms(userId: string): Promise<Form[]> {
-    const userForms = await db
-      .select()
-      .from(forms)
-      .where(eq(forms.userId, userId))
-      .orderBy(desc(forms.updatedAt));
+  async getUserTodoCount(userId: string): Promise<number> {
+    const [result] = await db
+      .select({ count: count() })
+      .from(submissions)
+      .leftJoin(forms, eq(submissions.formId, forms.id))
+      .where(
+        and(
+          eq(forms.userId, userId),
+          eq(submissions.resolved, false),
+          isNotNull(submissions.aiProblem)
+        )
+      );
+    return result?.count || 0;
+  }
 
-    // Get submission counts for each form
-    const formsWithCounts = await Promise.all(
-      userForms.map(async (form) => {
-        const [submissionCount] = await db
-          .select({ count: count() })
-          .from(submissions)
-          .where(eq(submissions.formId, form.id));
+  async getUserForms(userId: string): Promise<(Form & {
+    submissions: Submission[];
+    aiConversationCount: number;
+  })[]> {
+    type FormWithAgg = Form & { submissions: Submission[]; aiConversationCount: number };
 
-        const [aiCount] = await db
-          .select({ count: count() })
-          .from(aiConversations)
-          .leftJoin(
-            submissions,
-            eq(submissions.id, aiConversations.submissionId)
-          )
-          .where(eq(submissions.formId, form.id));
+    const sqlText = `
+      SELECT
+        f.id,
+        f.title,
+        f.description,
+        f.user_id AS "userId",
+        f.fields,
+        f.settings,
+        f.is_published AS "isPublished",
+        f.created_at AS "createdAt",
+        f.updated_at AS "updatedAt",
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', s.id,
+              'formId', s.form_id,
+              'data', s.data,
+              'completedAt', s.completed_at,
+              'timeTaken', s.time_taken,
+              'aiProblem', s.ai_problem,
+              'resolved', s.resolved,
+              'ipAddress', s.ip_address
+            )
+          ) FILTER (WHERE s.id IS NOT NULL),
+          '[]'
+        )::json AS submissions,
+        (
+          SELECT COUNT(*)::int
+          FROM ai_conversations ac
+          JOIN submissions s2 ON s2.id = ac.submission_id
+          WHERE s2.form_id = f.id
+        ) AS "aiConversationCount"
+      FROM forms f
+      LEFT JOIN submissions s ON s.form_id = f.id
+      WHERE f.user_id = $1
+      GROUP BY f.id
+      ORDER BY f.updated_at DESC;
+    `;
 
-        return {
-          ...form,
-          submissions: Array(submissionCount.count || 0),
-          aiConversations: aiCount.count || 0,
-        };
-      })
-    );
-
-    return formsWithCounts;
+    const { rows } = await pool.query<FormWithAgg>(sqlText, [userId]);
+    return rows;
   }
 
   async getForm(id: string): Promise<Form | undefined> {
@@ -260,6 +293,7 @@ export class DatabaseStorage implements IStorage {
     const [result] = await db
       .select({ count: count() })
       .from(submissions)
+      .leftJoin(forms, eq(submissions.formId, forms.id))
       .where(eq(forms.userId, userId));
     return result.count || 0;
   }

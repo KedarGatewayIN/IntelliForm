@@ -38,7 +38,7 @@ export interface Form {
   createdAt: string;
   updatedAt: string;
   submissions?: Submission[];
-  aiConversations?: number;
+  aiConversationCount?: number;
 }
 
 export interface Submission {

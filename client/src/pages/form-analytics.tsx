@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/hooks/use-auth";
 
 interface IFormAnalytics {
   totalResponses: number;
@@ -100,6 +101,7 @@ export default function FormAnalytics() {
       enabled: !!params.id,
     });
   const queryClient = useQueryClient();
+  const { setUser } = useAuth();
 
   const { data: submissions, isLoading: submissionsLoading } = useQuery<
     ISubmission[]
@@ -179,6 +181,14 @@ export default function FormAnalytics() {
             });
           }
         );
+        setUser((prev) => {
+          if (resolved) {
+            prev!.todoCount -= 1;
+          } else {
+            prev!.todoCount += 1;
+          }
+          return prev;
+        });
       })
       .catch((error) => {
         toast({

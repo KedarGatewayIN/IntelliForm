@@ -67,7 +67,19 @@ export default function Navbar() {
                     )}
                   >
                     <Icon className="h-4 w-4" />
-                    {item.label}
+                    <span className="relative inline-flex items-center">
+                      {item.label}
+                      {item.href === "/todo" && (user?.todoCount ?? 0) > 0 ? (
+                        <span className="ml-2 relative">
+                          <span className="absolute -top-2 -right-4 flex h-5 w-5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-60"></span>
+                            <span className="relative inline-flex items-center justify-center h-5 w-5 rounded-full bg-red-500 text-white text-xs font-bold shadow-md border-2 border-white">
+                              {user?.todoCount! > 99 ? "99+" : user?.todoCount}
+                            </span>
+                          </span>
+                        </span>
+                      ) : null}
+                    </span>
                   </Link>
                 );
               })}

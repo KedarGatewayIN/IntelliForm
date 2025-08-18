@@ -7,11 +7,12 @@ interface User {
   id: string;
   username: string;
   email: string;
+  todoCount: number
 }
 
 interface AuthContextType {
   user: User | null;
-  setUser: (user: User | null) => void;
+  setUser: React.Dispatch<React.SetStateAction<User | null>>;
   logout: () => void;
   isLoading: boolean;
 }
