@@ -35,7 +35,11 @@ import {
   TooltipTrigger,
   TooltipProvider,
 } from "@/components/ui/tooltip";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
@@ -47,9 +51,13 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/use-auth";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 interface IFormAnalytics {
   totalResponses: number;
@@ -174,7 +182,10 @@ export default function FormAnalytics() {
   ) => {
     if (resolved) {
       if (!comment || !comment.trim()) {
-        setResolvePopover({ submissionId: submission_id, anchor: anchor ?? "row" });
+        setResolvePopover({
+          submissionId: submission_id,
+          anchor: anchor ?? "row",
+        });
         return;
       }
       apiRequest("PUT", `/api/submission/${submission_id}`, {
@@ -193,7 +204,11 @@ export default function FormAnalytics() {
               if (!old) return [];
               return old.map((val) =>
                 val.id === submission_id
-                  ? { ...val, resolved: true, resolutionComment: comment.trim() }
+                  ? {
+                      ...val,
+                      resolved: true,
+                      resolutionComment: comment.trim(),
+                    }
                   : val
               );
             }
@@ -222,7 +237,9 @@ export default function FormAnalytics() {
       .then(() => {
         toast({
           title: "Update Successful",
-          description: `Submission marked as ${resolved ? "resolved" : "unresolved"}.`,
+          description: `Submission marked as ${
+            resolved ? "resolved" : "unresolved"
+          }.`,
         });
         queryClient.setQueryData<ISubmission[]>(
           ["/api/forms", params.id, "submissions"],
@@ -237,7 +254,8 @@ export default function FormAnalytics() {
           }
         );
         setUser((prev) => {
-          if (resolved) prev!.todoCount -= 1; else prev!.todoCount += 1;
+          if (resolved) prev!.todoCount -= 1;
+          else prev!.todoCount += 1;
           return prev;
         });
       })
@@ -481,7 +499,10 @@ export default function FormAnalytics() {
                                         <CheckCheck className="h-4 w-4 text-green-600 cursor-pointer" />
                                       </Button>
                                     ) : (
-                                      <Button variant="destructiveOutline" size="sm">
+                                      <Button
+                                        variant="destructiveOutline"
+                                        size="sm"
+                                      >
                                         <BadgeAlert className="h-4 w-4 cursor-pointer" />
                                       </Button>
                                     )}
@@ -498,163 +519,458 @@ export default function FormAnalytics() {
                                 </TooltipContent>
 
                                 {/* Dialog Content */}
-                                <DialogContent className="max-w-2xl h-auto max-h-[80vh] flex flex-col">
-                                  <DialogHeader>
-                                    <DialogTitle className="text-lg font-semibold">
-                                      AI Conversation
+                                <DialogContent className="max-w-4xl h-auto max-h-[90vh] flex flex-col overflow-hidden">
+                                  <DialogHeader className="pb-4 border-b">
+                                    <DialogTitle className="text-xl font-semibold flex items-center gap-2">
+                                      <BotIcon className="h-5 w-5 text-secondary" />
+                                      Submission Insights
                                     </DialogTitle>
                                     <p className="text-sm text-muted-foreground">
-                                      Showing all AI and User messages per field
+                                      Detailed analysis of AI interactions and
+                                      suggested improvements.
                                     </p>
                                   </DialogHeader>
 
-                                  {/* Scrollable Conversations */}
-                                  <ScrollArea className="flex-1 pr-2 space-y-6 overflow-y-auto">
-                                    {submission.aiConversations?.length ? (
-                                      submission.aiConversations.map(
-                                        (conv, idx: number) => (
-                                          <Card
-                                            key={conv.id || idx}
-                                            className="shadow-sm border"
-                                          >
-                                            <CardHeader className="pb-2">
-                                              <CardTitle className="text-sm font-medium text-gray-700">
-                                                Field:{" "}
-                                                {conv.messages[0].content}
-                                              </CardTitle>
-                                              <Separator />
-                                            </CardHeader>
-
-                                            <CardContent className="p-4 space-y-3">
-                                              {conv.messages
-                                                .slice(1)
-                                                .map((msg, mIdx: number) => (
-                                                  <div
-                                                    key={mIdx}
-                                                    className={`flex items-start gap-2 ${
-                                                      msg.role === "user"
-                                                        ? "justify-end"
-                                                        : "justify-start"
-                                                    }`}
-                                                  >
-                                                    {msg.role === "ai" && (
-                                                      <div className="w-8 h-8 rounded-full bg-yellow-200 flex items-center justify-center text-xs font-bold text-gray-800">
-                                                        AI
-                                                      </div>
-                                                    )}
-
-                                                    <div
-                                                      className={`rounded-2xl px-4 py-2 max-w-[75%] text-sm shadow-sm ${
-                                                        msg.role === "user"
-                                                          ? "bg-blue-500 text-white rounded-br-none"
-                                                          : "bg-yellow-100 text-gray-800 rounded-bl-none"
-                                                      }`}
-                                                    >
-                                                      {msg.content}
-                                                    </div>
-
-                                                    {msg.role === "user" && (
-                                                      <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-xs font-bold text-white">
-                                                        U
-                                                      </div>
-                                                    )}
-                                                  </div>
-                                                ))}
-                                            </CardContent>
-                                          </Card>
-                                        )
-                                      )
-                                    ) : (
-                                      <div className="text-gray-500 text-center py-4">
-                                        No conversation found.
+                                  <div className="flex-1 overflow-y-auto pr-2 space-y-6 py-4">
+                                    {/* Issue Status Banner */}
+                                    <div
+                                      className={`rounded-lg p-4 border-l-4 ${
+                                        !submission.aiProblem
+                                          ? "bg-green-50 border-l-green-400"
+                                          : submission.resolved
+                                          ? "bg-blue-50 border-l-blue-400"
+                                          : "bg-red-50 border-l-red-400"
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        {!submission.aiProblem ? (
+                                          <CheckCircleIcon className="h-5 w-5 text-green-600" />
+                                        ) : submission.resolved ? (
+                                          <CheckCheck className="h-5 w-5 text-blue-600" />
+                                        ) : (
+                                          <BadgeAlert className="h-5 w-5 text-red-600" />
+                                        )}
+                                        <span className="font-medium text-sm">
+                                          {!submission.aiProblem
+                                            ? "No Issues Detected"
+                                            : submission.resolved
+                                            ? "Issue Resolved"
+                                            : "Action Required"}
+                                        </span>
                                       </div>
-                                    )}
-                                  </ScrollArea>
+                                    </div>
 
-                                  {/* Footer */}
-                                  <DialogFooter className="pt-4 border-t">
-                                    <div className="flex gap-4">
-                                      {!submission.aiProblem ? (
-                                        ""
-                                      ) : submission.resolved ? (
-                                        <Button
-                                          variant="destructive"
-                                          onClick={() => {
-                                            updateSubmissionResolved(
-                                              submission.id,
-                                              false
-                                            );
-                                          }}
-                                        >
-                                          Mark as Unresolved
-                                        </Button>
-                                      ) : (
-                                        <Popover
-                                          open={resolvePopover.submissionId === submission.id && resolvePopover.anchor === "dialog"}
-                                          onOpenChange={(open) => {
-                                            if (!open) {
-                                              setResolvePopover({ submissionId: null, anchor: null });
-                                              setResolutionComment("");
-                                            }
-                                          }}
-                                        >
-                                          <PopoverTrigger asChild>
-                                            <Button
-                                              variant="default"
-                                              onClick={() => {
-                                                updateSubmissionResolved(
-                                                  submission.id,
-                                                  true,
-                                                  undefined,
-                                                  "dialog"
-                                                );
-                                              }}
-                                            >
-                                              Mark as Resolved
-                                            </Button>
-                                          </PopoverTrigger>
-                                          <PopoverContent className="w-80" align="end">
-                                            <div className="space-y-2">
-                                              <Label htmlFor={`resolution-${submission.id}`}>Resolution comment</Label>
-                                              <Textarea
-                                                id={`resolution-${submission.id}`}
-                                                value={resolutionComment}
-                                                onChange={(e) => setResolutionComment(e.target.value)}
-                                                placeholder="Add details about how you resolved this"
-                                                rows={4}
-                                              />
-                                              <div className="flex justify-end gap-2">
-                                                <Button
-                                                  variant="outline"
-                                                  size="sm"
-                                                  onClick={() => {
-                                                    setResolvePopover({ submissionId: null, anchor: null });
-                                                    setResolutionComment("");
-                                                  }}
-                                                >
-                                                  Cancel
-                                                </Button>
-                                                <Button
-                                                  size="sm"
-                                                  onClick={() => {
-                                                    updateSubmissionResolved(
-                                                      submission.id,
-                                                      true,
-                                                      resolutionComment
-                                                    );
-                                                  }}
-                                                  disabled={!resolutionComment.trim().length}
-                                                >
-                                                  Confirm
-                                                </Button>
+                                    {/* AI Issue Summary */}
+                                    <Card className="shadow-sm border-0 bg-gradient-to-r from-red-50 to-orange-50">
+                                      <CardHeader className="pb-3">
+                                        <CardTitle className="text-base font-semibold flex items-center gap-2">
+                                          <CircleX className="h-4 w-4 text-red-500" />
+                                          Issue Summary
+                                        </CardTitle>
+                                      </CardHeader>
+                                      <CardContent className="pt-0">
+                                        <div className="bg-white rounded-md p-4 border border-red-100">
+                                          <p className="text-sm text-gray-700 leading-relaxed first-letter:capitalize">
+                                            {submission.aiProblem?.trim()
+                                              ?.length
+                                              ? submission.aiProblem
+                                              : "No AI issues were flagged for this submission. The user completed the form without requiring AI assistance or encountering any problems."}
+                                          </p>
+                                        </div>
+                                      </CardContent>
+                                    </Card>
+
+                                    <Card className="shadow-sm border-0 bg-gradient-to-r from-blue-50 to-indigo-50">
+                                      <CardHeader className="pb-3">
+                                        <CardTitle className="text-base font-semibold flex items-center gap-2">
+                                          <BotIcon className="h-4 w-4 text-blue-500" />
+                                          Recommended Actions
+                                        </CardTitle>
+                                      </CardHeader>
+                                      <CardContent className="pt-0">
+                                        <div className="bg-white rounded-md p-4 border border-blue-100">
+                                          <div className="space-y-3">
+                                            {submission.aiProblem
+                                              ?.toLowerCase()
+                                              .includes("unclear") ||
+                                            submission.aiProblem
+                                              ?.toLowerCase()
+                                              .includes("confusing") ? (
+                                              <div className="flex items-start gap-3">
+                                                <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                  <span className="text-xs font-bold text-blue-600">
+                                                    1
+                                                  </span>
+                                                </div>
+                                                <div>
+                                                  <p className="font-medium text-sm text-gray-900">
+                                                    Clarify Question Wording
+                                                  </p>
+                                                  <p className="text-sm text-gray-600">
+                                                    Revise ambiguous language
+                                                    and add context to help
+                                                    users understand what's
+                                                    expected.
+                                                  </p>
+                                                </div>
+                                              </div>
+                                            ) : (
+                                              <div className="flex items-start gap-3">
+                                                <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                  <span className="text-xs font-bold text-blue-600">
+                                                    1
+                                                  </span>
+                                                </div>
+                                                <div>
+                                                  <p className="font-medium text-sm text-gray-900">
+                                                    Improve Field Guidance
+                                                  </p>
+                                                  <p className="text-sm text-gray-600">
+                                                    Add helpful placeholders and
+                                                    examples to set clear
+                                                    expectations.
+                                                  </p>
+                                                </div>
+                                              </div>
+                                            )}
+
+                                            <div className="flex items-start gap-3">
+                                              <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                <span className="text-xs font-bold text-blue-600">
+                                                  2
+                                                </span>
+                                              </div>
+                                              <div>
+                                                <p className="font-medium text-sm text-gray-900">
+                                                  Add Input Validation
+                                                </p>
+                                                <p className="text-sm text-gray-600">
+                                                  Implement real-time validation
+                                                  to catch issues before AI
+                                                  assistance is needed.
+                                                </p>
                                               </div>
                                             </div>
-                                          </PopoverContent>
-                                        </Popover>
-                                      )}
-                                      <DialogClose asChild>
-                                        <Button variant="outline">Close</Button>
-                                      </DialogClose>
+
+                                            <div className="flex items-start gap-3">
+                                              <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                <span className="text-xs font-bold text-blue-600">
+                                                  3
+                                                </span>
+                                              </div>
+                                              <div>
+                                                <p className="font-medium text-sm text-gray-900">
+                                                  Optimize Form Flow
+                                                </p>
+                                                <p className="text-sm text-gray-600">
+                                                  Break complex sections into
+                                                  smaller, more manageable
+                                                  steps.
+                                                </p>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </CardContent>
+                                    </Card>
+
+                                    {/* Resolution Details */}
+                                    {submission.resolved && (
+                                      <Card className="shadow-sm border-0 bg-gradient-to-r from-green-50 to-emerald-50">
+                                        <CardHeader className="pb-3">
+                                          <CardTitle className="text-base font-semibold flex items-center gap-2">
+                                            <CheckCircleIcon className="h-4 w-4 text-green-500" />
+                                            Resolution Details
+                                          </CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="pt-0">
+                                          <div className="bg-white rounded-md p-4 border border-green-100">
+                                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                                              {submission.resolutionComment?.trim()
+                                                ?.length
+                                                ? submission.resolutionComment
+                                                : "This issue has been marked as resolved without additional details."}
+                                            </p>
+                                          </div>
+                                        </CardContent>
+                                      </Card>
+                                    )}
+
+                                    <Card className="shadow-sm border-0 bg-gradient-to-r from-purple-50 to-pink-50">
+                                      <CardHeader className="pb-3">
+                                        <CardTitle className="text-base font-semibold flex items-center gap-2">
+                                          <BotIcon className="h-4 w-4 text-purple-500" />
+                                          AI & User History
+                                          <Badge
+                                            variant="secondary"
+                                            className="ml-2"
+                                          >
+                                            {submission.aiConversations
+                                              ?.length || 0}{" "}
+                                            conversations
+                                          </Badge>
+                                        </CardTitle>
+                                      </CardHeader>
+                                      <CardContent className="pt-0">
+                                        <div className="bg-white rounded-md border border-purple-100 overflow-hidden">
+                                          {submission.aiConversations
+                                            ?.length ? (
+                                            <Accordion
+                                              type="multiple"
+                                              className="w-full"
+                                            >
+                                              {submission.aiConversations.map(
+                                                (conv, idx: number) => (
+                                                  <AccordionItem
+                                                    key={conv.id || idx}
+                                                    value={String(
+                                                      conv.id || idx
+                                                    )}
+                                                    className="border-b border-gray-100 last:border-b-0"
+                                                  >
+                                                    <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:bg-gray-50 no-underline hover:no-underline">
+                                                      <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+                                                          <BotIcon className="h-4 w-4 text-purple-600" />
+                                                        </div>
+                                                        <div className="text-left">
+                                                          <p className="font-medium">
+                                                            Field:{" "}
+                                                            {conv.messages?.[0]
+                                                              ?.content ||
+                                                              "Unknown Field"}
+                                                          </p>
+                                                          <p className="text-xs text-gray-500 mt-0.5">
+                                                            {conv.messages
+                                                              ?.length ||
+                                                              0}{" "}
+                                                            messages •{" "}
+                                                            {formatDate(
+                                                              conv.createdAt
+                                                            )}
+                                                          </p>
+                                                        </div>
+                                                      </div>
+                                                    </AccordionTrigger>
+                                                    <AccordionContent className="px-4 pb-4">
+                                                      <div className="bg-gray-50 rounded-lg p-4 max-h-80 overflow-y-auto">
+                                                        <div className="space-y-4">
+                                                          {conv.messages
+                                                            ?.slice(1)
+                                                            .map(
+                                                              (
+                                                                msg,
+                                                                mIdx: number
+                                                              ) => (
+                                                                <div
+                                                                  key={mIdx}
+                                                                  className={`flex gap-3 ${
+                                                                    msg.role ===
+                                                                    "user"
+                                                                      ? "flex-row-reverse"
+                                                                      : "flex-row"
+                                                                  }`}
+                                                                >
+                                                                  <div
+                                                                    className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                                                      msg.role ===
+                                                                      "user"
+                                                                        ? "bg-blue-500 text-white"
+                                                                        : "bg-yellow-400 text-gray-800"
+                                                                    }`}
+                                                                  >
+                                                                    <span className="text-xs font-bold">
+                                                                      {msg.role ===
+                                                                      "user"
+                                                                        ? "U"
+                                                                        : "AI"}
+                                                                    </span>
+                                                                  </div>
+                                                                  <div
+                                                                    className={`flex-1 max-w-[80%] ${
+                                                                      msg.role ===
+                                                                      "user"
+                                                                        ? "text-right"
+                                                                        : "text-left"
+                                                                    }`}
+                                                                  >
+                                                                    <div
+                                                                      className={`inline-block rounded-2xl px-4 py-2 text-sm shadow-sm ${
+                                                                        msg.role ===
+                                                                        "user"
+                                                                          ? "bg-blue-500 text-white rounded-br-md"
+                                                                          : "bg-white text-gray-800 border border-gray-200 rounded-bl-md"
+                                                                      }`}
+                                                                    >
+                                                                      <p className="leading-relaxed">
+                                                                        {
+                                                                          msg.content
+                                                                        }
+                                                                      </p>
+                                                                    </div>
+                                                                    <p className="text-xs text-gray-500 mt-1 px-2">
+                                                                      {formatDate(
+                                                                        msg.timestamp
+                                                                      )}
+                                                                    </p>
+                                                                  </div>
+                                                                </div>
+                                                              )
+                                                            )}
+                                                        </div>
+                                                      </div>
+                                                    </AccordionContent>
+                                                  </AccordionItem>
+                                                )
+                                              )}
+                                            </Accordion>
+                                          ) : (
+                                            <div className="text-center py-8 px-4">
+                                              <BotIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                                              <p className="text-gray-500 font-medium">
+                                                No AI conversations found
+                                              </p>
+                                              <p className="text-gray-400 text-sm mt-1">
+                                                This user completed the form
+                                                without AI assistance
+                                              </p>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </CardContent>
+                                    </Card>
+                                  </div>
+
+                                  <DialogFooter className="pt-6 border-t bg-gray-50 -mx-6 -mb-6 px-6 pb-6 rounded-b-lg">
+                                    <div className="flex items-center justify-between w-full">
+                                      <div className="text-xs text-gray-500">
+                                        Submission ID:{" "}
+                                        {submission.id.slice(0, 8)}...
+                                      </div>
+                                      <div className="flex gap-3">
+                                        {!submission.aiProblem ? (
+                                          <Button variant="outline" disabled>
+                                            No Action Needed
+                                          </Button>
+                                        ) : submission.resolved ? (
+                                          <Button
+                                            variant="destructive"
+                                            onClick={() => {
+                                              updateSubmissionResolved(
+                                                submission.id,
+                                                false
+                                              );
+                                            }}
+                                          >
+                                            <CircleX className="h-4 w-4 mr-2" />
+                                            Mark as Unresolved
+                                          </Button>
+                                        ) : (
+                                          <Popover
+                                            open={
+                                              resolvePopover.submissionId ===
+                                                submission.id &&
+                                              resolvePopover.anchor === "dialog"
+                                            }
+                                            onOpenChange={(open) => {
+                                              if (!open) {
+                                                setResolvePopover({
+                                                  submissionId: null,
+                                                  anchor: null,
+                                                });
+                                                setResolutionComment("");
+                                              }
+                                            }}
+                                          >
+                                            <PopoverTrigger asChild>
+                                              <Button
+                                                className="bg-green-600 hover:bg-green-700"
+                                                onClick={() => {
+                                                  updateSubmissionResolved(
+                                                    submission.id,
+                                                    true,
+                                                    undefined,
+                                                    "dialog"
+                                                  );
+                                                }}
+                                              >
+                                                <CheckCircleIcon className="h-4 w-4 mr-2" />
+                                                Mark as Resolved
+                                              </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent
+                                              className="w-96"
+                                              align="end"
+                                            >
+                                              <div className="space-y-4">
+                                                <div>
+                                                  <Label
+                                                    htmlFor={`resolution-${submission.id}`}
+                                                    className="text-sm font-medium"
+                                                  >
+                                                    Resolution Details
+                                                  </Label>
+                                                  <p className="text-xs text-gray-500 mt-1">
+                                                    Describe how you resolved
+                                                    this issue for future
+                                                    reference
+                                                  </p>
+                                                </div>
+                                                <Textarea
+                                                  id={`resolution-${submission.id}`}
+                                                  value={resolutionComment}
+                                                  onChange={(e) =>
+                                                    setResolutionComment(
+                                                      e.target.value
+                                                    )
+                                                  }
+                                                  placeholder="Add details about how you resolved this"
+                                                  rows={4}
+                                                  className="resize-none"
+                                                />
+                                                <div className="flex justify-end gap-2">
+                                                  <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                      setResolvePopover({
+                                                        submissionId: null,
+                                                        anchor: null,
+                                                      });
+                                                      setResolutionComment("");
+                                                    }}
+                                                  >
+                                                    Cancel
+                                                  </Button>
+                                                  <Button
+                                                    size="sm"
+                                                    onClick={() => {
+                                                      updateSubmissionResolved(
+                                                        submission.id,
+                                                        true,
+                                                        resolutionComment
+                                                      );
+                                                    }}
+                                                    disabled={
+                                                      !resolutionComment.trim()
+                                                        .length
+                                                    }
+                                                    className="bg-green-600 hover:bg-green-700"
+                                                  >
+                                                    <CheckCircleIcon className="h-4 w-4 mr-1" />
+                                                    Confirm Resolution
+                                                  </Button>
+                                                </div>
+                                              </div>
+                                            </PopoverContent>
+                                          </Popover>
+                                        )}
+                                        <DialogClose asChild>
+                                          <Button variant="outline">
+                                            Close
+                                          </Button>
+                                        </DialogClose>
+                                      </div>
                                     </div>
                                   </DialogFooter>
                                 </DialogContent>
@@ -687,10 +1003,17 @@ export default function FormAnalytics() {
                             ) : (
                               <Tooltip>
                                 <Popover
-                                  open={resolvePopover.submissionId === submission.id && resolvePopover.anchor === "row"}
+                                  open={
+                                    resolvePopover.submissionId ===
+                                      submission.id &&
+                                    resolvePopover.anchor === "row"
+                                  }
                                   onOpenChange={(open) => {
                                     if (!open) {
-                                      setResolvePopover({ submissionId: null, anchor: null });
+                                      setResolvePopover({
+                                        submissionId: null,
+                                        anchor: null,
+                                      });
                                       setResolutionComment("");
                                     }
                                   }}
@@ -715,11 +1038,17 @@ export default function FormAnalytics() {
                                   </TooltipTrigger>
                                   <PopoverContent className="w-80" align="end">
                                     <div className="space-y-2">
-                                      <Label htmlFor={`resolution-${submission.id}`}>Resolution comment</Label>
+                                      <Label
+                                        htmlFor={`resolution-${submission.id}`}
+                                      >
+                                        Resolution comment
+                                      </Label>
                                       <Textarea
                                         id={`resolution-${submission.id}`}
                                         value={resolutionComment}
-                                        onChange={(e) => setResolutionComment(e.target.value)}
+                                        onChange={(e) =>
+                                          setResolutionComment(e.target.value)
+                                        }
                                         placeholder="Add details about how you resolved this"
                                         rows={4}
                                       />
@@ -728,7 +1057,10 @@ export default function FormAnalytics() {
                                           variant="outline"
                                           size="sm"
                                           onClick={() => {
-                                            setResolvePopover({ submissionId: null, anchor: null });
+                                            setResolvePopover({
+                                              submissionId: null,
+                                              anchor: null,
+                                            });
                                             setResolutionComment("");
                                           }}
                                         >
@@ -743,7 +1075,9 @@ export default function FormAnalytics() {
                                               resolutionComment
                                             );
                                           }}
-                                          disabled={!resolutionComment.trim().length}
+                                          disabled={
+                                            !resolutionComment.trim().length
+                                          }
                                         >
                                           Confirm
                                         </Button>
