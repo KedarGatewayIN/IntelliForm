@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -16,10 +16,14 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
-import { BarChart3, CheckSquare } from "lucide-react";
+import { BarChart3, CheckSquare, SquareArrowOutUpRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useQuery } from "@tanstack/react-query";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const TodoPage: React.FC = () => {
   const [, navigate] = useLocation();
@@ -167,22 +171,29 @@ const TodoPage: React.FC = () => {
                         {item.problem}
                       </TableCell>
                       <TableCell className="font-medium">
-                        {removeDuplicates(item.form, "form_id").length > 0
-                          ? removeDuplicates(item.form, "form_id").map(
-                              (form) => (
-                                <Button
-                                  key={form.form_id}
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() =>
-                                    navigate(`/forms/${form.form_id}/analytics`)
-                                  }
-                                >
-                                  {form.title}
-                                </Button>
+                        <div className="flex flex-wrap gap-2">
+                          {removeDuplicates(item.form, "form_id").length > 0
+                            ? removeDuplicates(item.form, "form_id").map(
+                                (form) => (
+                                  <Button
+                                    key={form.form_id}
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-2"
+                                    aria-label={`Open analytics for ${form.title}`}
+                                    onClick={() =>
+                                      navigate(
+                                        `/forms/${form.form_id}/analytics`
+                                      )
+                                    }
+                                  >
+                                    {form.title}
+                                    <SquareArrowOutUpRight className="h-4 w-4" />
+                                  </Button>
+                                )
                               )
-                            )
-                          : "-"}
+                            : "-"}
+                        </div>
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge
@@ -241,28 +252,38 @@ const TodoPage: React.FC = () => {
                         </Tooltip>
                       </TableCell>
                       <TableCell>
-                        <ScrollArea className="w-16 overflow-x-auto">
-                          <Tooltip>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-2"
+                            >
+                              <BarChart3 className="h-4 w-4" />
+                              {item.form.length}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-72">
                             {item.form.map((form) => (
-                              <>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={() =>
-                                      navigate(
-                                        `/forms/${form.form_id}/responses/${form.submission_id}`
-                                      )
-                                    }
-                                  >
-                                    <BarChart3 className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>View Submission</TooltipContent>
-                              </>
+                              <DropdownMenuItem
+                                key={form.submission_id}
+                                className="flex flex-col items-start gap-0.5 cursor-pointer"
+                                onClick={() =>
+                                  navigate(
+                                    `/forms/${form.form_id}/responses/${form.submission_id}`
+                                  )
+                                }
+                              >
+                                <span className="font-medium">
+                                  {form.title}
+                                </span>
+                                <span className="text-xs text-muted-foreground truncate">
+                                  {form.submission_id}
+                                </span>
+                              </DropdownMenuItem>
                             ))}
-                          </Tooltip>
-                        </ScrollArea>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -277,9 +298,11 @@ const TodoPage: React.FC = () => {
                   No action items found
                 </h3>
                 <p className="text-gray-500 mb-6 max-w-md">
-                  When AI analyzes your form submissions and identifies problems, action items will appear here with suggested solutions to help you improve your forms.
+                  When AI analyzes your form submissions and identifies
+                  problems, action items will appear here with suggested
+                  solutions to help you improve your forms.
                 </p>
-                <Button 
+                <Button
                   onClick={() => navigate("/forms/new")}
                   className="bg-primary hover:bg-primary/90"
                 >
