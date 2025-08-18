@@ -66,6 +66,17 @@ export default function FormPreview({
     });
   };
 
+  const copyEmbedCode = () => {
+    const chatbotId = params.id;
+    if (!chatbotId) return;
+    const embedCode = `<script id="gateway-chatbot" chatbotId="${chatbotId}" src="https://qqzgjlyqdabrrpeaxoud.supabase.co/storage/v1/object/public/Chatbot/chatbot.js"></script>`;
+    navigator.clipboard.writeText(embedCode);
+    toast({
+      title: "Embed code copied!",
+      description: "Paste this <script> tag into your website.",
+    });
+  };
+
   if (state.loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -122,6 +133,9 @@ export default function FormPreview({
             </div>
 
             <div className="flex space-x-3">
+              <Button variant="outline" onClick={copyEmbedCode}>
+                Copy Embed Code
+              </Button>
               <Button variant="outline" onClick={shareForm}>
                 <ShareIcon className="h-4 w-4 mr-2" />
                 Share
@@ -162,6 +176,7 @@ export default function FormPreview({
                     </span>
                   </div>
                   <QuestionRenderer
+                    autofocus={false}
                     field={field}
                     value={state.submission[field.id] || ""}
                     onChange={() => {}} // Preview mode - no interaction

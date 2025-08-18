@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { useMemo, useState } from "react";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,8 +18,11 @@ import {
 
 export default function Dashboard() {
   const { data: forms = [], isLoading } = useForms();
+  const [, navigate] = useLocation();
 
-  const [activeFilter, setActiveFilter] = useState<"all" | "published" | "draft" | "ai">("all");
+  const [activeFilter, setActiveFilter] = useState<
+    "all" | "published" | "draft" | "ai"
+  >("all");
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredForms = useMemo(() => {
@@ -177,8 +181,7 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Filter and Search */
-        }
+        {/* Filter and Search */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div className="flex space-x-2">
             <Button
@@ -237,8 +240,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Forms Grid */
-        }
+        {/* Forms Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredForms.map((form) => (
             <Card
@@ -248,11 +250,17 @@ export default function Dashboard() {
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-r from-primary to-secondary rounded-lg flex items-center justify-center">
+                    <div
+                      className="w-10 h-10 bg-gradient-to-r from-primary to-secondary rounded-lg flex items-center justify-center cursor-pointer"
+                      onClick={() => navigate(`/forms/${form.id}/edit`)}
+                    >
                       <FileTextIcon className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900 group-hover:text-primary transition-colors">
+                      <h3
+                        className="font-semibold text-gray-900 group-hover:text-primary hover:underline transition-colors cursor-pointer"
+                        onClick={() => navigate(`/forms/${form.id}/edit`)}
+                      >
                         {form.title}
                       </h3>
                       <p className="text-sm text-gray-500">
@@ -279,8 +287,7 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
                   <span>
                     <BarChart3Icon className="h-4 w-4 inline mr-1" />
-                    {form.submissions?.length ?? 0}{" "}
-                    responses
+                    {form.submissions?.length ?? 0} responses
                   </span>
                   {form.fields.some((field: any) => field.aiEnabled) && (
                     <span>

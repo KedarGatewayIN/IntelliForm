@@ -102,6 +102,17 @@ export default function FormBuilder() {
     }
   };
 
+  const copyEmbedCode = () => {
+    const chatbotId = params.id as string;
+    if (!chatbotId || chatbotId === "new") {
+      toast({ title: "Save form first", description: "Please save the form to get an ID." });
+      return;
+    }
+    const embedCode = `<script id=\"gateway-chatbot\" chatbotId=\"${chatbotId}\" src=\"https://qqzgjlyqdabrrpeaxoud.supabase.co/storage/v1/object/public/Chatbot/chatbot.js\"></script>`;
+    navigator.clipboard.writeText(embedCode);
+    toast({ title: "Embed code copied!", description: "Paste this <script> tag into your website." });
+  };
+
   
   const deleteForm = async () => {
     try {
@@ -215,6 +226,14 @@ export default function FormBuilder() {
             </div>
             
             <div className="flex items-center space-x-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={copyEmbedCode}
+                disabled={!isEditing}
+              >
+                Copy Embed Code
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
