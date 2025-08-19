@@ -289,6 +289,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Submissions routes
+  app.get("/api/submissions", auth, async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const pageSize = parseInt(req.query.pageSize as string) || 10;
+      const recentLimit = parseInt((req.query.recentLimit as string) || "10");
+      const filters = {
+        formId: (req.query.formId as string) || undefined,
+        dateFrom: (req.query.dateFrom as string) || undefined,
+        dateTo: (req.query.dateTo as string) || undefined,
+        ip: (req.query.ip as string) || undefined,
+        hasAiProblem: typeof req.query.hasAiProblem !== 'undefined' ? String(req.query.hasAiProblem) === 'true' : undefined,
+        resolved: typeof req.query.resolved !== 'undefined' ? String(req.query.resolved) === 'true' : undefined,
+        timeMin: typeof req.query.timeMin !== 'undefined' ? parseInt(req.query.timeMin as string) : undefined,
+        timeMax: typeof req.query.timeMax !== 'undefined' ? parseInt(req.query.timeMax as string) : undefined,
+        query: (req.query.q as string) || undefined,
+        aiQuery: (req.query.aiQuery as string) || undefined,
+        hasAiConversation: typeof req.query.hasAiConversation !== 'undefined' ? String(req.query.hasAiConversation) === 'true' : undefined,
+      } as const;
+
+      const total = await storage.countFilteredSubmissions({ userId: req.userId!, filters });
+
+      // Recent submissions (top N by completedAt DESC) with filters
+      const recent = await storage.getFilteredSubmissions({
+        userId: req.userId!,
+        offset: 0,
+        limit: recentLimit,
+        filters,
+      });
+
+      // Others: everything after the recent chunk, paginated, with filters
+      const othersOffsetBase = Math.max(recentLimit, 0);
+      const othersOffset = othersOffsetBase + (Math.max(page, 1) - 1) * Math.max(pageSize, 1);
+      const othersLimit = Math.max(pageSize, 1);
+
+      const others =
+        othersOffset >= total
+          ? []
+          : await storage.getFilteredSubmissions({
+              userId: req.userId!,
+              offset: othersOffset,
+              limit: othersLimit,
+              filters,
+            });
+
+      const recentCount = Math.min(total, recentLimit);
+      const othersTotal = Math.max(total - recentCount, 0);
+
+      res.json({
+        recent,
+        others,
+        total,
+        recentCount,
+        othersTotal,
+        page,
+        pageSize,
+        recentLimit,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get submissions" });
+    }
+  });
   app.get("/api/submissions/recent", auth, async (req, res) => {
     try {
       const page = parseInt(req.query.page as string) || 1;

@@ -14,6 +14,7 @@ import {
   Clock,
   BarChart3,
   CheckCircle,
+  FileText,
 } from "lucide-react";
 import { usePathname } from "wouter/use-browser-location";
 import clsx from "clsx";
@@ -53,7 +54,7 @@ export default function Navbar() {
 
   const navItems = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/recent", label: "Recent", icon: Clock },
+    { href: "/submissions", label: "Submissions", icon: FileText },
     { href: "/analytics", label: "Analytics", icon: BarChart3 },
     { href: "/todo", label: "Todo", icon: CheckCircle },
   ];

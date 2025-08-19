@@ -47,6 +47,40 @@ export interface IStorage {
   createSubmission(submission: InsertSubmission): Promise<Submission>;
   getFormSubmissions(formId: string): Promise<Submission[]>;
   getFormAnalytics(formId: string): Promise<any>;
+  getFilteredSubmissions(options: {
+    userId: string;
+    offset?: number;
+    limit?: number;
+    filters?: {
+      formId?: string;
+      dateFrom?: string;
+      dateTo?: string;
+      ip?: string;
+      hasAiProblem?: boolean;
+      resolved?: boolean;
+      timeMin?: number;
+      timeMax?: number;
+      query?: string;
+      aiQuery?: string;
+      hasAiConversation?: boolean;
+    };
+  }): Promise<(Submission & { formTitle: string | null })[]>;
+  countFilteredSubmissions(options: {
+    userId: string;
+    filters?: {
+      formId?: string;
+      dateFrom?: string;
+      dateTo?: string;
+      ip?: string;
+      hasAiProblem?: boolean;
+      resolved?: boolean;
+      timeMin?: number;
+      timeMax?: number;
+      query?: string;
+      aiQuery?: string;
+      hasAiConversation?: boolean;
+    };
+  }): Promise<number>;
 
   // AI Conversation methods
   saveAIConversation(
@@ -255,7 +289,7 @@ export class DatabaseStorage implements IStorage {
   ): Promise<Submission> {
     const [updatedSubmission] = await db
       .update(submissions)
-      .set({ ...submission })
+      .set(submission as any)
       .where(eq(submissions.id, submission_id))
       .returning();
     return updatedSubmission;
@@ -335,6 +369,210 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(forms, eq(submissions.formId, forms.id))
       .where(eq(forms.userId, userId));
     return result.count || 0;
+  }
+
+  async getFilteredSubmissions({
+    userId,
+    offset = 0,
+    limit = 10,
+    filters = {},
+  }: {
+    userId: string;
+    offset?: number;
+    limit?: number;
+    filters?: {
+      formId?: string;
+      dateFrom?: string;
+      dateTo?: string;
+      ip?: string;
+      hasAiProblem?: boolean;
+      resolved?: boolean;
+      timeMin?: number;
+      timeMax?: number;
+      query?: string;
+      aiQuery?: string;
+      hasAiConversation?: boolean;
+    };
+  }): Promise<(Submission & { formTitle: string | null })[]> {
+    const params: any[] = [userId];
+    const where: string[] = [
+      `f.user_id = $${params.length}`,
+    ];
+
+    if (filters.formId) {
+      params.push(filters.formId);
+      where.push(`s.form_id = $${params.length}`);
+    }
+    if (filters.dateFrom) {
+      params.push(filters.dateFrom);
+      where.push(`s.completed_at >= $${params.length}`);
+    }
+    if (filters.dateTo) {
+      params.push(filters.dateTo);
+      where.push(`s.completed_at <= $${params.length}`);
+    }
+    if (filters.ip) {
+      params.push(`%${filters.ip}%`);
+      where.push(`s.ip_address ILIKE $${params.length}`);
+    }
+    if (typeof filters.hasAiProblem === 'boolean') {
+      if (filters.hasAiProblem) {
+        where.push(`s.ai_problem IS NOT NULL AND s.ai_problem <> ''`);
+      } else {
+        where.push(`(s.ai_problem IS NULL OR s.ai_problem = '')`);
+      }
+    }
+    if (typeof filters.resolved === 'boolean') {
+      params.push(filters.resolved);
+      where.push(`s.resolved = $${params.length}`);
+    }
+    if (typeof filters.timeMin === 'number') {
+      params.push(filters.timeMin);
+      where.push(`s.time_taken >= $${params.length}`);
+    }
+    if (typeof filters.timeMax === 'number') {
+      params.push(filters.timeMax);
+      where.push(`s.time_taken <= $${params.length}`);
+    }
+    if (filters.query) {
+      params.push(`%${filters.query}%`);
+      where.push(`s.data::text ILIKE $${params.length}`);
+    }
+    if (filters.aiQuery) {
+      params.push(`%${filters.aiQuery}%`);
+      where.push(`s.ai_problem ILIKE $${params.length}`);
+    }
+    if (typeof filters.hasAiConversation === 'boolean') {
+      if (filters.hasAiConversation) {
+        where.push(
+          `EXISTS (SELECT 1 FROM ai_conversations ac WHERE ac.submission_id = s.id)`
+        );
+      } else {
+        where.push(
+          `NOT EXISTS (SELECT 1 FROM ai_conversations ac WHERE ac.submission_id = s.id)`
+        );
+      }
+    }
+
+    // Pagination params
+    params.push(offset);
+    const offsetIndex = params.length;
+    params.push(limit);
+    const limitIndex = params.length;
+
+    const sqlText = `
+      SELECT 
+        s.id,
+        s.form_id as "formId",
+        s.data,
+        s.completed_at as "completedAt",
+        s.time_taken as "timeTaken",
+        s.ai_problem as "aiProblem",
+        s.ai_solutions as "aiSolutions",
+        s.resolved,
+        s.ip_address as "ipAddress",
+        s.resolution_comment as "resolutionComment",
+        f.title as "formTitle"
+      FROM submissions s
+      LEFT JOIN forms f ON f.id = s.form_id
+      WHERE ${where.join(' AND ')}
+      ORDER BY s.completed_at DESC
+      OFFSET $${offsetIndex}
+      LIMIT $${limitIndex}
+    `;
+
+    const { rows } = await pool.query<Submission & { formTitle: string | null }>(sqlText, params);
+    return rows;
+  }
+
+  async countFilteredSubmissions({
+    userId,
+    filters = {},
+  }: {
+    userId: string;
+    filters?: {
+      formId?: string;
+      dateFrom?: string;
+      dateTo?: string;
+      ip?: string;
+      hasAiProblem?: boolean;
+      resolved?: boolean;
+      timeMin?: number;
+      timeMax?: number;
+      query?: string;
+      aiQuery?: string;
+      hasAiConversation?: boolean;
+    };
+  }): Promise<number> {
+    const params: any[] = [userId];
+    const where: string[] = [
+      `f.user_id = $${params.length}`,
+    ];
+
+    if (filters.formId) {
+      params.push(filters.formId);
+      where.push(`s.form_id = $${params.length}`);
+    }
+    if (filters.dateFrom) {
+      params.push(filters.dateFrom);
+      where.push(`s.completed_at >= $${params.length}`);
+    }
+    if (filters.dateTo) {
+      params.push(filters.dateTo);
+      where.push(`s.completed_at <= $${params.length}`);
+    }
+    if (filters.ip) {
+      params.push(`%${filters.ip}%`);
+      where.push(`s.ip_address ILIKE $${params.length}`);
+    }
+    if (typeof filters.hasAiProblem === 'boolean') {
+      if (filters.hasAiProblem) {
+        where.push(`s.ai_problem IS NOT NULL AND s.ai_problem <> ''`);
+      } else {
+        where.push(`(s.ai_problem IS NULL OR s.ai_problem = '')`);
+      }
+    }
+    if (typeof filters.resolved === 'boolean') {
+      params.push(filters.resolved);
+      where.push(`s.resolved = $${params.length}`);
+    }
+    if (typeof filters.timeMin === 'number') {
+      params.push(filters.timeMin);
+      where.push(`s.time_taken >= $${params.length}`);
+    }
+    if (typeof filters.timeMax === 'number') {
+      params.push(filters.timeMax);
+      where.push(`s.time_taken <= $${params.length}`);
+    }
+    if (filters.query) {
+      params.push(`%${filters.query}%`);
+      where.push(`s.data::text ILIKE $${params.length}`);
+    }
+    if (filters.aiQuery) {
+      params.push(`%${filters.aiQuery}%`);
+      where.push(`s.ai_problem ILIKE $${params.length}`);
+    }
+    if (typeof filters.hasAiConversation === 'boolean') {
+      if (filters.hasAiConversation) {
+        where.push(
+          `EXISTS (SELECT 1 FROM ai_conversations ac WHERE ac.submission_id = s.id)`
+        );
+      } else {
+        where.push(
+          `NOT EXISTS (SELECT 1 FROM ai_conversations ac WHERE ac.submission_id = s.id)`
+        );
+      }
+    }
+
+    const countSql = `
+      SELECT COUNT(*)::int as count
+      FROM submissions s
+      LEFT JOIN forms f ON f.id = s.form_id
+      WHERE ${where.join(' AND ')}
+    `;
+
+    const { rows } = await pool.query<{ count: number }>(countSql, params);
+    return rows[0]?.count ?? 0;
   }
 
   async getFormAnalytics(formId: string): Promise<any> {

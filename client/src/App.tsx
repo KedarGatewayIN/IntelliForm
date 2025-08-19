@@ -37,7 +37,7 @@ function Router() {
           <TodoPage />
         </ProtectedRoute>
       </Route>
-      <Route path="/recent">
+      <Route path="/submissions">
         <ProtectedRoute>
           <RecentSubmissionsPage />
         </ProtectedRoute>
