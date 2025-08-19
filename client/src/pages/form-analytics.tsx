@@ -109,6 +109,7 @@ export default function FormAnalytics() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { data: form, isLoading: formLoading } = useForm(params.id);
+  useTitle(form?.title ? `${form.title} — Analytics` : "Form Analytics");
 
   const { data: analytics, isLoading: analyticsLoading } =
     useQuery<IFormAnalytics>({
@@ -300,8 +301,6 @@ export default function FormAnalytics() {
       </div>
     );
   }
-
-  useTitle(form?.title ? `${form.title} — Analytics` : "Form Analytics");
 
   const stats = analytics || {
     totalResponses: 0,
