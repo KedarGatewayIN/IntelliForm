@@ -1,5 +1,7 @@
 import { ChatGroq } from "@langchain/groq";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+import { ChatOpenAI } from "@langchain/openai";
+import { BaseChatModel } from "@langchain/core/language_models/chat_models";
 
 interface ProblemRanking {
   problem: string;
@@ -8,24 +10,53 @@ interface ProblemRanking {
 }
 
 class AIService {
-  private llm: ChatGroq;
-  private gemini: ChatGoogleGenerativeAI;
+  private llm: BaseChatModel;
 
   constructor() {
-    const apiKey = process.env.GROQ_API_KEY;
-    const geminiApiKey = process.env.GEMINI_API_KEY;
+    const provider = (process.env.AI_PROVIDER || "groq").toLowerCase();
 
-    this.llm = new ChatGroq({
-      apiKey: apiKey,
-      temperature: 0.7,
-      model: "llama3-70b-8192",
-    });
-
-    this.gemini = new ChatGoogleGenerativeAI({
-      apiKey: geminiApiKey,
-      temperature: 0.7,
-      model: "gemini-1.5-flash",
-    });
+    switch (provider) {
+      case "openai": {
+        const openaiApiKey = process.env.OPENAI_API_KEY;
+        if (!openaiApiKey) {
+          throw new Error("Missing OPENAI_API_KEY for AI_PROVIDER=openai");
+        }
+        const openaiModel = process.env.OPENAI_MODEL || "gpt-4o-mini";
+        this.llm = new ChatOpenAI({
+          apiKey: openaiApiKey,
+          temperature: 0.7,
+          model: openaiModel,
+        });
+        break;
+      }
+      case "gemini": {
+        const geminiApiKey = process.env.GEMINI_API_KEY;
+        if (!geminiApiKey) {
+          throw new Error("Missing GEMINI_API_KEY for AI_PROVIDER=gemini");
+        }
+        const geminiModel = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+        this.llm = new ChatGoogleGenerativeAI({
+          apiKey: geminiApiKey,
+          temperature: 0.7,
+          model: geminiModel,
+        });
+        break;
+      }
+      case "groq":
+      default: {
+        const groqApiKey = process.env.GROQ_API_KEY;
+        if (!groqApiKey) {
+          throw new Error("Missing GROQ_API_KEY for AI_PROVIDER=groq");
+        }
+        const groqModel = process.env.GROQ_MODEL || "llama3-70b-8192";
+        this.llm = new ChatGroq({
+          apiKey: groqApiKey,
+          temperature: 0.7,
+          model: groqModel,
+        });
+        break;
+      }
+    }
   }
 
   /**
@@ -45,7 +76,7 @@ class AIService {
             You are a support assistant for The Gateway Corp. Your tone is professional, empathetic, and friendly.
 
             Primary Goal:
-            Your primary role is to listen to the user, accurately identify their problem or feedback, and acknowledge it. You must not provide any solutions, email addresses, or support channel directions. Your entire purpose is to understand the user's issue and then stop.
+            Your primary role is to listen to the user, accurately identify their problem or feedback, and acknowledge it. You must not provide any solutions, email addresses, or support channel directions. Your entire purpose is to understand the user's issue (if any) and then stop.
 
             Core Workflow:
             Analyze the User's Input: Determine if the user's statement clearly identifies a specific problem.
@@ -59,6 +90,7 @@ class AIService {
             Example for "We must go digitalization": "Going digital can definitely be a great step forward! To ensure I understand your feedback correctly, are you referring to a specific process like onboarding, or our digital services in general?"
 
             Acknowledge and Terminate:
+            If the user have no problem or user gives positive feedback, you must acknowledge it and then stop.
             Once the problem is identified (either from the initial input or after your clarifying question), your job is complete.
             Acknowledge the specific issue you've identified.
             Immediately end the conversation using the [CONVERSATION_FINISHED] flag.
@@ -77,6 +109,7 @@ class AIService {
             Immediately after the user responds to your single clarifying question.
 
             Critical Rules to Follow:
+            DO NOT ask "Do you have any issue?" if user give positive feedback or general feedback.
             DO NOT provide solutions.
             DO NOT provide email addresses or ask the user to contact another department.
             DO NOT ask "Is there anything else I can help you with?" or any similar follow-up question.

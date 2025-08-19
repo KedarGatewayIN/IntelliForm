@@ -25,7 +25,6 @@ const formElements: ElementCategory[] = [
       { type: "text", label: "Input", icon: TypeIcon },
       { type: "textarea", label: "Text Area", icon: AlignLeftIcon },
       { type: "email", label: "Email", icon: MailIcon },
-      // { type: "number", label: "Number", icon: HashIcon },
     ]
   },
   {
