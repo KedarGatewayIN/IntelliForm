@@ -9,10 +9,10 @@ const formElements = [
   {
     category: "Basic Elements",
     items: [
-      { type: "text", label: "Text Input", icon: TypeIcon },
+      { type: "text", label: "Input", icon: TypeIcon },
       { type: "textarea", label: "Text Area", icon: AlignLeftIcon },
       { type: "email", label: "Email", icon: MailIcon },
-      { type: "number", label: "Number", icon: HashIcon },
+      // { type: "number", label: "Number", icon: HashIcon },
     ]
   },
   {
@@ -27,10 +27,10 @@ const formElements = [
     category: "Advanced Elements",
     items: [
       { type: "matrix", label: "Matrix/Table", icon: TableIcon },
-      { type: "ai_conversation", label: "AI Conversation", icon: BotIcon, special: true },
+      // { type: "ai_conversation", label: "AI Conversation", icon: BotIcon, special: true },
       { type: "date", label: "Date Picker", icon: CalendarIcon },
       { type: "rating", label: "Rating Scale", icon: StarIcon },
-      { type: "file", label: "File Upload", icon: UploadIcon },
+      // { type: "file", label: "File Upload", icon: UploadIcon },
     ]
   }
 ];

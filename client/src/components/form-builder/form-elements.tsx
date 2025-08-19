@@ -323,6 +323,11 @@ export default function FormElements({
                 AI
               </span>
             )}
+            {field.validation && field.validation.length > 0 && (
+              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                {field.validation.length} validation{field.validation.length > 1 ? 's' : ''}
+              </span>
+            )}
           </div>
 
           {/* Controls */}

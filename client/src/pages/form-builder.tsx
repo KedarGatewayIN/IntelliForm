@@ -149,7 +149,12 @@ export default function FormBuilder() {
       ...(fieldType === 'matrix' && {
         matrixRows: ["Row 1", "Row 2", "Row 3"],
         matrixColumns: ["1", "2", "3", "4", "5"]
-      })
+      }),
+      ...((fieldType === "checkbox" ||
+        fieldType === "radio" ||
+        fieldType === "select") && {
+        options: ["Option 1", "Option 2", "Option 3"],
+      }),
     };
 
     setForm(prev => ({
@@ -158,13 +163,17 @@ export default function FormBuilder() {
     }));
   };
 
-  const updateField = (fieldId: string, updates: Partial<FormField>) => {
+  const updateField = (fieldId: string, updates: Partial<FormField>) => {    
     setForm(prev => ({
       ...prev,
       fields: prev.fields?.map(field => 
         field.id === fieldId ? { ...field, ...updates } : field
       ) || [],
     }));
+    
+    if (selectedField && selectedField.id === fieldId) {
+      setSelectedField({ ...selectedField, ...updates });
+    }
   };
 
   const deleteField = (fieldId: string) => {
