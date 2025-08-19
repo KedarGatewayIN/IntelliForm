@@ -25,107 +25,29 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useTitle } from "@/hooks/use-title";
+import { useQuery } from "@tanstack/react-query";
 
 const TodoPage: React.FC = () => {
   useTitle("Action Items");
   const [, navigate] = useLocation();
 
-  const { data: problems, isLoading: problemsLoading } = {
-    data: [
-      {
-        problem: "missing physical office tour during onboarding",
-        count: 3,
-        ids: [
-          "63ccacb7-2834-4c33-b6c6-f70258d8f9e7",
-          "43584c52-2cce-4815-9c47-f0cd75837dc2",
-          "2e20580a-e110-481a-b1ea-71df6fa2a007",
-        ],
-        solutions: [
-          "Create a self-guided virtual tour video",
-          "Provide a detailed office map with key locations",
-          "Assign an onboarding buddy to give a personalized tour",
-        ],
-        form: [
-          {
-            form_id: "313cabc5-5db7-4288-9b99-fc46f3cdcb75",
-            title: "New Hire Orientation Survey",
-            submission_id: "63ccacb7-2834-4c33-b6c6-f70258d8f9e7",
-          },
-          {
-            form_id: "313cabc5-5db7-4288-9b99-fc46f3cdcb75",
-            title: "New Hire Orientation Survey",
-            submission_id: "43584c52-2cce-4815-9c47-f0cd75837dc2",
-          },
-          {
-            form_id: "4c82c402-d869-4601-8f90-bc29e64fd053",
-            title: "Suggestions Survey",
-            submission_id: "2e20580a-e110-481a-b1ea-71df6fa2a007",
-          },
-        ],
-      },
-      {
-        problem: "excessive paperwork during onboarding",
-        count: 2,
-        ids: [
-          "63ccacb7-2834-4c33-b6c6-f70258d8f9e7",
-          "43584c52-2cce-4815-9c47-f0cd75837dc2",
-        ],
-        solutions: [
-          "Digitize onboarding documents and forms",
-          "Implement an e-signature solution",
-          "Consolidate multiple forms into a single digital packet",
-        ],
-        form: [
-          {
-            form_id: "313cabc5-5db7-4288-9b99-fc46f3cdcb75",
-            title: "New Hire Orientation Survey",
-            submission_id: "63ccacb7-2834-4c33-b6c6-f70258d8f9e7",
-          },
-          {
-            form_id: "313cabc5-5db7-4288-9b99-fc46f3cdcb75",
-            title: "New Hire Orientation Survey",
-            submission_id: "43584c52-2cce-4815-9c47-f0cd75837dc2",
-          },
-        ],
-      },
-      {
-        problem: "negative feedback about HR round in onboarding process",
-        count: 1,
-        ids: ["c22578eb-f011-414b-9c0b-bf07083a6a8b"],
-        solutions: [
-          "Improve the HR round by making it more personalized and interactive",
-          "Provide clear expectations and goals for the HR round",
-          "Make the HR round more concise and efficient",
-        ],
-        form: [
-          {
-            form_id: "313cabc5-5db7-4288-9b99-fc46f3cdcb75",
-            title: "New Hire Orientation Survey",
-            submission_id: "c22578eb-f011-414b-9c0b-bf07083a6a8b",
-          },
-        ],
-      },
-    ],
-    isLoading: false,
-  };
-
-  // const {
-  //   data: { response: problems } = { response: [] },
-  //   isLoading: problemsLoading,
-  // } = useQuery<{
-  //   response: {
-  //     problem: string;
-  //     count: number;
-  //     form: {
-  //       form_id: string;
-  //       title: string;
-  //       submission_id: string;
-  //     }[];
-  //     solutions: string[];
-  //   }[];
-  // }>({
-  //   queryKey: ["/api/ai/summarize-problems"],
-  // });
+  const {
+    data: { response: problems } = { response: [] },
+    isLoading: problemsLoading,
+  } = useQuery<{
+    response: {
+      problem: string;
+      count: number;
+      form: {
+        form_id: string;
+        title: string;
+        submission_id: string;
+      }[];
+      solutions: string[];
+    }[];
+  }>({
+    queryKey: ["/api/ai/summarize-problems"],
+  });
 
   function removeDuplicates<T>(array: T[], key: keyof T): T[] {
     const seen = new Set<any>();
