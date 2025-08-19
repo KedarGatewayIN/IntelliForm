@@ -6,8 +6,74 @@ import { aiService } from "./services/ai";
 import { loginSchema, registerSchema, insertFormSchema, insertSubmissionSchema } from "@shared/schema";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import type { Form, Submission } from "@shared/schema";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+
+// Helper function to generate CSV content from form submissions
+function generateCSV(form: Form, submissions: Submission[]): string {
+  if (submissions.length === 0) {
+    return "";
+  }
+
+  // Extract field labels from the form
+  const fieldLabels = form.fields.map(field => field.label);
+  
+  // Create CSV header
+  const headers = [
+    "Submission ID",
+    "Completed At",
+    "Time Taken (seconds)",
+    "IP Address",
+    "AI Problem",
+    "AI Solutions",
+    "Resolved",
+    "Resolution Comment",
+    ...fieldLabels
+  ];
+  
+  // Create CSV rows
+  const rows = submissions.map(submission => {
+    const baseData = [
+      submission.id,
+      submission.completedAt ? new Date(submission.completedAt).toISOString() : "",
+      submission.timeTaken || "",
+      submission.ipAddress || "",
+      submission.aiProblem || "",
+      Array.isArray(submission.aiSolutions) ? submission.aiSolutions.join("; ") : "",
+      submission.resolved ? "Yes" : "No",
+      submission.resolutionComment || ""
+    ];
+    
+    // Add form field data
+    const fieldData = form.fields.map(field => {
+      const value = submission.data[field.id];
+      if (value === null || value === undefined) {
+        return "";
+      }
+      if (Array.isArray(value)) {
+        return value.join("; ");
+      }
+      return String(value);
+    });
+    
+    return [...baseData, ...fieldData];
+  });
+  
+  // Combine headers and rows
+  const csvRows = [headers, ...rows];
+  
+  // Convert to CSV format (handle commas and quotes properly)
+  return csvRows.map(row => 
+    row.map(cell => {
+      const cellStr = String(cell);
+      if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+        return `"${cellStr.replace(/"/g, '""')}"`;
+      }
+      return cellStr;
+    }).join(',')
+  ).join('\n');
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -302,6 +368,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(analytics);
     } catch (error) {
       res.status(500).json({ message: "Failed to get analytics" });
+    }
+  });
+
+  app.get("/api/forms/:id/export", auth, async (req, res) => {
+    try {
+      const form = await storage.getForm(req.params.id);
+      if (!form) {
+        return res.status(404).json({ message: "Form not found" });
+      }
+      
+      if (form.userId !== req.userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const submissions = await storage.getFormSubmissions(req.params.id);
+      
+      if (submissions.length === 0) {
+        return res.status(404).json({ message: "No submissions found for this form" });
+      }
+
+      const csvContent = generateCSV(form, submissions);
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="${form.title}_submissions_${new Date().toISOString().split('T')[0]}.csv"`);
+      
+      res.send(csvContent);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to export form data" });
     }
   });
 

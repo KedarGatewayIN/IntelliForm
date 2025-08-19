@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Navbar from "@/components/layout/navbar";
 import QuestionRenderer from "@/components/form-stepper/question-renderer";
-import { ArrowLeftIcon, ExternalLinkIcon, ShareIcon } from "lucide-react";
+import { ArrowLeftIcon, CodeIcon, ExternalLinkIcon, ShareIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { Form } from "@shared/schema";
@@ -137,6 +137,7 @@ export default function FormPreview({
 
             <div className="flex space-x-3">
               <Button variant="outline" onClick={copyEmbedCode}>
+                <CodeIcon className="h-4 w-4 mr-2" />
                 Copy Embed Code
               </Button>
               <Button variant="outline" onClick={shareForm}>
