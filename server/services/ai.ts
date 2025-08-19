@@ -368,150 +368,196 @@ class AIService {
   }
 
   /**
-   * AI-powered form building assistant that helps users create forms through conversation
+   * Builds forms through conversation with the user
    */
-  async formBuilder(
+  async buildForm(
     message: string,
     currentForm: any,
-    conversationHistory: { role: "user" | "assistant"; content: string }[]
-  ): Promise<{ response: string; formSuggestion?: any }> {
+    conversationHistory?: any[]
+  ): Promise<{ message: string; formData?: any }> {
     try {
       const response = await this.llm.invoke([
         {
           role: "system",
           content: `
-            You are an AI Form Building Assistant for IntelliForm, a powerful form builder platform. Your role is to help users create forms through natural conversation by understanding their needs and generating appropriate form structures.
+            You are an expert form builder AI assistant. Your role is to help users create forms through natural conversation.
 
             Core Capabilities:
-            1. Form Creation: Help users create new forms from scratch based on their descriptions
-            2. Field Addition: Suggest and add appropriate form fields based on user requests
-            3. Form Modification: Help modify existing forms, fields, and settings
-            4. Best Practices: Provide guidance on form design and user experience
-            5. Smart Suggestions: Proactively suggest additional fields that would complement the user's form
-
-            Available Form Field Types:
-            - text: Basic text input
-            - textarea: Multi-line text area
-            - email: Email input with validation
-            - radio: Multiple choice (single selection)
-            - checkbox: Multiple checkboxes (multiple selections)
-            - select: Dropdown selection
-            - date: Date picker
-            - rating: Star rating scale
-            - matrix: Matrix/table questions
-            - ai_conversation: AI-powered conversation field
-
-            Form Templates & Patterns:
-            - Contact Forms: name, email, subject, message
-            - Survey Forms: demographics, rating scales, open-ended questions
-            - Registration Forms: personal info, preferences, terms acceptance
-            - Feedback Forms: rating, experience questions, suggestions
-            - Event Forms: attendee info, dietary requirements, session preferences
-            - Job Applications: personal details, experience, file uploads
-            - Customer Support: issue description, priority, contact preferences
+            - Create forms based on user descriptions
+            - Add, modify, or remove form fields
+            - Suggest form improvements
+            - Handle various field types: text, email, number, textarea, select, radio, checkbox, date, file, rating, slider
+            - Set up form validation rules
+            - Configure conditional logic
+            - Create professional form titles and descriptions
 
             Response Format:
             You must respond with a JSON object containing:
             {
-              "response": "Your conversational response to the user",
-              "formSuggestion": {
-                "action": "create_form" | "add_field" | "modify_field" | "update_form" | "add_multiple_fields" | null,
-                "data": { /* relevant data for the action */ }
+              "message": "Your conversational response to the user",
+              "formData": {
+                "title": "Form title",
+                "description": "Form description",
+                "fields": [array of field objects],
+                "settings": {}
               }
             }
 
-            Action Types:
-            1. create_form: When user wants to create a new form
-               data: { title: string, description: string }
-            
-            2. add_field: When user wants to add a specific field
-               data: { type: string, label: string, required?: boolean, options?: string[], placeholder?: string }
-            
-            3. add_multiple_fields: When adding several related fields at once
-               data: { fields: [{ type, label, required?, options?, placeholder? }, ...] }
-            
-            4. modify_field: When user wants to modify an existing field
-               data: { fieldId: string, updates: { /* field updates */ } }
-            
-            5. update_form: When user wants to update form metadata
-               data: { title?: string, description?: string, settings?: any }
+            Field Object Structure:
+            {
+              "id": "unique-id",
+              "type": "field-type",
+              "label": "Field Label",
+              "placeholder": "Optional placeholder",
+              "required": true/false,
+              "options": ["array", "for", "select/radio/checkbox"],
+              "validation": [{"type": "min/max/email/pattern", "value": "", "message": ""}],
+              "aiEnabled": true/false
+            }
 
             Conversation Guidelines:
-            - Be helpful, friendly, and proactive
-            - Ask clarifying questions when user requests are ambiguous
-            - Suggest best practices for form design
-            - Explain what you're doing when making changes
-            - Offer additional improvements when appropriate
-            - When creating forms, suggest common field combinations
-            - Be specific about field types and provide good default labels
-            - Consider user experience and form flow
+            1. Be conversational and helpful
+            2. Ask clarifying questions when needed
+            3. Suggest improvements and best practices
+            4. Update the form incrementally based on user requests
+            5. Explain what changes you're making
 
-            Current Form Context:
-            Title: ${currentForm?.title || 'Untitled Form'}
-            Description: ${currentForm?.description || 'No description'}
-            Fields: ${currentForm?.fields?.length || 0} fields
-            Field Types: ${currentForm?.fields?.map((f: any) => f.type).join(', ') || 'none'}
+            Examples of User Requests:
+            - "Create a contact form"
+            - "Add a rating field for satisfaction"
+            - "Make the email field required"
+            - "Add options to the dropdown"
+            - "Remove the phone number field"
 
-            Smart Patterns:
-            - For contact forms: Always suggest name, email, and message fields
-            - For surveys: Include rating scales and demographic questions
-            - For registrations: Include required personal info and optional preferences
-            - For feedback: Include satisfaction ratings and open-ended questions
-
-            Examples:
-            User: "Create a contact form"
-            Response: {
-              "response": "I'll help you create a contact form! I'm setting up the basic structure and adding the essential contact fields: name, email, and message. This gives you a complete contact form that's ready to use.",
-              "formSuggestion": {
-                "action": "create_form",
-                "data": {
-                  "title": "Contact Form",
-                  "description": "Get in touch with us - we'd love to hear from you!"
-                }
-              }
-            }
-
-            User: "Add standard contact fields"
-            Response: {
-              "response": "Perfect! I'm adding the standard contact fields: Full Name (required), Email (required), Subject, and Message. These cover all the essential information you'd need from someone reaching out.",
-              "formSuggestion": {
-                "action": "add_multiple_fields",
-                "data": {
-                  "fields": [
-                    { "type": "text", "label": "Full Name", "required": true, "placeholder": "Enter your full name" },
-                    { "type": "email", "label": "Email Address", "required": true, "placeholder": "your.email@example.com" },
-                    { "type": "text", "label": "Subject", "required": false, "placeholder": "What is this regarding?" },
-                    { "type": "textarea", "label": "Message", "required": true, "placeholder": "Tell us how we can help you..." }
-                  ]
-                }
-              }
-            }
+            Current Form State: ${JSON.stringify(currentForm)}
           `,
         },
-        ...(conversationHistory.length > 0 ? conversationHistory : []),
+        ...(conversationHistory || []).map((msg: any) => ({
+          role: msg.role === "assistant" ? "assistant" : "user",
+          content: msg.content,
+        })),
         {
           role: "user",
           content: message,
         },
       ]);
 
-      const content = response.content as string;
-      
+      let responseText = response.content as string;
+
       try {
-        const parsed = JSON.parse(content);
-        return parsed;
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const jsonResponse = JSON.parse(jsonMatch[0]);
+          return jsonResponse;
+        }
       } catch (parseError) {
-        // If JSON parsing fails, return a simple response
-        return {
-          response: content,
-          formSuggestion: null
-        };
+        // If JSON parsing fails, create a basic response
       }
+
+      // Fallback: Create a simple form based on the message
+      // if (
+      //   !currentForm.title &&
+      //   (message.toLowerCase().includes("create") ||
+      //     message.toLowerCase().includes("build"))
+      // ) {
+      //   return {
+      //     message:
+      //       "I'll help you create that form! Let me start with a basic structure. What specific fields would you like to include?",
+      //     formData: {
+      //       title: this.extractFormTitle(message),
+      //       description: "Please fill out this form",
+      //       fields: this.generateBasicFields(message),
+      //       settings: {},
+      //     },
+      //   };
+      // }
+
+      return {
+        message:
+          "I understand you want to work on the form. Could you be more specific about what you'd like to add or change?",
+        formData: currentForm,
+      };
     } catch (error) {
-      console.error("AI form builder service error:", error);
+      console.error("AI form builder error:", error);
       throw new Error("AI form builder service is currently unavailable");
     }
   }
+
+  // private extractFormTitle(message: string): string {
+  //   const lowerMessage = message.toLowerCase();
+  //   if (lowerMessage.includes("contact")) return "Contact Form";
+  //   if (lowerMessage.includes("feedback")) return "Feedback Form";
+  //   if (lowerMessage.includes("survey")) return "Survey Form";
+  //   if (lowerMessage.includes("application")) return "Application Form";
+  //   if (lowerMessage.includes("registration")) return "Registration Form";
+  //   if (lowerMessage.includes("booking")) return "Booking Form";
+  //   if (lowerMessage.includes("order")) return "Order Form";
+  //   return "New Form";
+  // }
+
+  // private generateBasicFields(message: string): any[] {
+  //   const lowerMessage = message.toLowerCase();
+  //   const fields = [];
+
+  //   // Always include name field
+  //   fields.push({
+  //     id: crypto.randomUUID(),
+  //     type: "text",
+  //     label: "Full Name",
+  //     required: true,
+  //     placeholder: "Enter your full name",
+  //   });
+
+  //   // Add email if mentioned or for contact forms
+  //   if (lowerMessage.includes("email") || lowerMessage.includes("contact")) {
+  //     fields.push({
+  //       id: crypto.randomUUID(),
+  //       type: "email",
+  //       label: "Email Address",
+  //       required: true,
+  //       placeholder: "Enter your email address",
+  //       validation: [
+  //         {
+  //           type: "email",
+  //           value: "",
+  //           message: "Please enter a valid email address",
+  //         },
+  //       ],
+  //     });
+  //   }
+
+  //   // Add phone for contact/booking forms
+  //   if (
+  //     lowerMessage.includes("phone") ||
+  //     lowerMessage.includes("contact") ||
+  //     lowerMessage.includes("booking")
+  //   ) {
+  //     fields.push({
+  //       id: crypto.randomUUID(),
+  //       type: "text",
+  //       label: "Phone Number",
+  //       required: false,
+  //       placeholder: "Enter your phone number",
+  //     });
+  //   }
+
+  //   // Add message/comments field
+  //   if (
+  //     lowerMessage.includes("feedback") ||
+  //     lowerMessage.includes("contact") ||
+  //     lowerMessage.includes("message")
+  //   ) {
+  //     fields.push({
+  //       id: crypto.randomUUID(),
+  //       type: "textarea",
+  //       label: lowerMessage.includes("feedback") ? "Your Feedback" : "Message",
+  //       required: true,
+  //       placeholder: "Please share your thoughts...",
+  //     });
+  //   }
+
+  //   return fields;
+  // }
 }
 
 export const aiService = new AIService();

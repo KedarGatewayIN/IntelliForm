@@ -2,13 +2,11 @@ import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import Navbar from "@/components/layout/navbar";
 import ElementSidebar from "@/components/form-builder/element-sidebar";
 import FormCanvas from "@/components/form-builder/form-canvas";
 import PropertiesPanel from "@/components/form-builder/properties-panel";
 import AIChatAssistant from "@/components/form-builder/ai-chat-assistant";
-import AIWelcomeBanner from "@/components/form-builder/ai-welcome-banner";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Form, FormField } from "@shared/schema";
@@ -326,9 +324,7 @@ export default function FormBuilder() {
       {/* AI Chat Assistant */}
       <AIChatAssistant
         form={form}
-        onUpdateForm={setForm}
-        onAddField={addField}
-        onUpdateField={updateField}
+        setForm={setForm}
         isOpen={isAIChatOpen}
         onToggle={() => setIsAIChatOpen(!isAIChatOpen)}
       />

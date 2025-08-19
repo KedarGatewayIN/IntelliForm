@@ -20,12 +20,6 @@ type ElementCategory = {
 
 const formElements: ElementCategory[] = [
   {
-    category: "AI-Powered Elements",
-    items: [
-      { type: "ai_conversation", label: "AI Conversation", icon: BotIcon, special: true },
-    ]
-  },
-  {
     category: "Basic Elements",
     items: [
       { type: "text", label: "Input", icon: TypeIcon },

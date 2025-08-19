@@ -528,7 +528,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/ai/form-builder", auth, async (req, res) => {
     try {
       const { message, currentForm, conversationHistory } = req.body;
-      const response = await aiService.formBuilder(message, currentForm, conversationHistory || []);
+      const response = await aiService.buildForm(message, currentForm, conversationHistory || []);
       res.json(response);
     } catch (error) {
       res.status(500).json({ message: error instanceof Error ? error.message : "AI form builder service unavailable" });
