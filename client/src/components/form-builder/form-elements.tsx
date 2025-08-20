@@ -318,7 +318,7 @@ export default function FormElements({
             />
             <span className="font-medium text-gray-900">{field.label}</span>
             {field.required && <span className="text-red-500">*</span>}
-            {field.aiEnabled && (
+            {field.aiEnabled && field.type === 'textarea' && (
               <span className="text-xs bg-secondary text-white px-2 py-1 rounded-full">
                 AI
               </span>
