@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import Navbar from "@/components/layout/navbar";
 import ElementSidebar from "@/components/form-builder/element-sidebar";
 import FormCanvas from "@/components/form-builder/form-canvas";
@@ -85,21 +84,28 @@ export default function FormBuilder() {
     }
   };
 
-  const publishForm = async () => {
+  const publishForm = async (publish: boolean) => {
     try {
-      const updatedForm = { ...form, isPublished: true };
+      const updatedForm = { ...form, isPublished: publish };
       const response = await apiRequest("PUT", `/api/forms/${params.id}`, updatedForm);
       const savedForm = await response.json();
       
       setForm(savedForm);
-      toast({
-        title: "Form Published",
-        description: "Your form is now live and accepting responses",
-      });
+      if(publish) {
+        toast({
+          title: "Form Published",
+          description: "Your form is now live and accepting responses",
+        });
+      } else {
+        toast({
+          title: "Form Unpublished",
+          description: "Your form is unpublished and no longer accepting responses!",
+        });
+      }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to publish form",
+        description: "Failed to update publish status!",
         variant: "destructive",
       });
     }
@@ -209,7 +215,7 @@ export default function FormBuilder() {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       
-      <div className="flex h-screen pt-16">
+      <div className="flex h-[100%]">
         {/* Left Sidebar - Form Elements */}
         <ElementSidebar onAddField={addField} />
 
@@ -251,7 +257,7 @@ export default function FormBuilder() {
                 variant="outline"
                 size="sm"
                 onClick={() => navigate(`/forms/${params.id}/preview`)}
-                disabled={!form.fields?.length}
+                disabled={!form.fields?.length || !isEditing}
               >
                 <EyeIcon className="h-4 w-4 mr-2" />
                 Preview
@@ -267,11 +273,12 @@ export default function FormBuilder() {
               </Button>
               <Button
                 size="sm"
-                onClick={publishForm}
+                variant={form.isPublished ? "destructiveOutline" : "default"}
+                onClick={() => publishForm(!form.isPublished)}
                 disabled={!form.fields?.length || !isEditing}
               >
                 <ShareIcon className="h-4 w-4 mr-2" />
-                Publish
+                {form.isPublished ? "Unpublish" : "Publish"}
               </Button>
               <Button
                 variant='destructiveOutline'
