@@ -148,7 +148,7 @@ export default function AIChatAssistant({
 
   return (
     <Card className="fixed bottom-6 right-[22rem] w-96 h-[600px] shadow-2xl border border-gray-200/50 bg-white/95 backdrop-blur-xl rounded-2xl overflow-hidden transform transition-all duration-300 animate-in slide-in-from-bottom-4 fade-in">
-      <CardHeader className="pb-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-b border-gray-200/30">
+      <CardHeader className="p-[1.5rem] bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-b border-gray-200/30">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center space-x-3">
             <div className="w-[51px] h-[48px] bg-white/20 rounded-[12px] flex items-center justify-center backdrop-blur-[10px] border border-white/30 shadow-md">
