@@ -212,7 +212,7 @@ export default function FormBuilder() {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       
-      <div className="flex h-screen pt-16">
+      <div className="flex h-[100%]">
         {/* Left Sidebar - Form Elements */}
         <ElementSidebar onAddField={addField} />
 

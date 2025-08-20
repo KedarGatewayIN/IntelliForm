@@ -71,8 +71,8 @@ export default function FormCanvas({
               /* Drop Zone with AI suggestions */
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center bg-gray-50/50">
                 <MousePointerIcon className="h-8 w-8 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500 font-medium">Drag form elements here to start building</p>
-                <p className="text-gray-400 text-sm mt-1">or click an element from the sidebar</p>
+                <p className="text-gray-500 font-medium">Click form element from the sidebar to start building</p>
+                <p className="text-gray-400 text-sm mt-1">or</p>
                 <div className="mt-6 p-4 bg-gradient-to-r from-secondary/5 to-primary/5 rounded-lg border border-primary/10">
                   <div className="flex items-center justify-center space-x-2 mb-2">
                     <BotIcon className="h-5 w-5 text-secondary" />
