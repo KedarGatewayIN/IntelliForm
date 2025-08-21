@@ -508,6 +508,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error instanceof Error ? error.message : "AI service unavailable" });
     }
   })
+
+  // Resolved problems - grouped with server-side filters and pagination
+  app.get("/api/problems/resolved", auth, async (req, res) => {
+    try {
+      const page = Math.max(parseInt((req.query.page as string) || "1", 10), 1);
+      const pageSize = Math.max(Math.min(parseInt((req.query.pageSize as string) || "10", 10), 100), 1);
+      const filters = {
+        formId: (req.query.formId as string) || undefined,
+        dateFrom: (req.query.dateFrom as string) || undefined,
+        dateTo: (req.query.dateTo as string) || undefined,
+        query: (req.query.q as string) || undefined,
+      } as const;
+
+      const { items, total, page: p, pageSize: ps } = await storage.getResolvedProblemsGrouped({
+        userId: req.userId!,
+        page,
+        pageSize,
+        filters,
+      });
+      res.json({ items, total, page: p, pageSize: ps });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get resolved problems" });
+    }
+  });
   app.post("/api/ai/chat", async (req, res) => {
     try {
       const { message, thread } = req.body;

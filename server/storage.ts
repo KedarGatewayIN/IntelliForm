@@ -36,10 +36,12 @@ export interface IStorage {
   getUserTodoCount(userId: string): Promise<number>;
 
   // Form methods
-  getUserForms(userId: string): Promise<(Form & { 
-    submissions: Submission[]; 
-    aiConversationCount: number;
-  })[]>;
+  getUserForms(userId: string): Promise<(
+    Form & {
+      submissions: Submission[];
+      aiConversationCount: number;
+    }
+  )[]>;
   getForm(id: string): Promise<Form | undefined>;
   createForm(form: InsertForm): Promise<Form>;
   updateForm(id: string, updates: Partial<Form>): Promise<Form>;
@@ -85,9 +87,34 @@ export interface IStorage {
   }): Promise<number>;
 
   // AI Conversation methods
-  saveAIConversation(
-    conversation: InsertAIConversation
-  ): Promise<AIConversation>;
+  saveAIConversation(conversation: InsertAIConversation): Promise<AIConversation>;
+
+  // Resolved problems (grouped)
+  getResolvedProblemsGrouped(options: {
+    userId: string;
+    page?: number;
+    pageSize?: number;
+    filters?: {
+      formId?: string;
+      dateFrom?: string;
+      dateTo?: string;
+      query?: string;
+    };
+  }): Promise<{
+    items: Array<{
+      problem: string;
+      count: number;
+      form: Array<{
+        form_id: string;
+        title: string | null;
+        submission_id: string;
+        completed_at: string | null;
+      }>;
+    }>;
+    total: number;
+    page: number;
+    pageSize: number;
+  }>;
 
   // Search
   searchAll(options: {
@@ -128,10 +155,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.username, username));
+    const [user] = await db.select().from(users).where(eq(users.username, username));
     return user || undefined;
   }
 
@@ -160,10 +184,12 @@ export class DatabaseStorage implements IStorage {
     return rows[0]?.count || 0;
   }
 
-  async getUserForms(userId: string): Promise<(Form & {
-    submissions: Submission[];
-    aiConversationCount: number;
-  })[]> {
+  async getUserForms(userId: string): Promise<
+    (Form & {
+      submissions: Submission[];
+      aiConversationCount: number;
+    })[]
+  > {
     type FormWithAgg = Form & { submissions: Submission[]; aiConversationCount: number };
 
     const sqlText = `
@@ -231,9 +257,7 @@ export class DatabaseStorage implements IStorage {
     // Delete related data first
     await db
       .delete(aiConversations)
-      .where(
-        sql`submission_id IN (SELECT id FROM submissions WHERE form_id = ${id})`
-      );
+      .where(sql`submission_id IN (SELECT id FROM submissions WHERE form_id = ${id})`);
 
     await db.delete(submissions).where(eq(submissions.formId, id));
     await db.delete(forms).where(eq(forms.id, id));
@@ -306,10 +330,7 @@ export class DatabaseStorage implements IStorage {
     return newSubmission;
   }
 
-  async updateSubmission(
-    submission_id: string,
-    submission: Partial<InsertSubmission>
-  ): Promise<Submission> {
+  async updateSubmission(submission_id: string, submission: Partial<InsertSubmission>): Promise<Submission> {
     const [updatedSubmission] = await db
       .update(submissions)
       .set(submission as any)
@@ -415,9 +436,7 @@ export class DatabaseStorage implements IStorage {
     };
   }): Promise<(Submission & { formTitle: string | null })[]> {
     const params: any[] = [userId];
-    const where: string[] = [
-      `f.user_id = $${params.length}`,
-    ];
+    const where: string[] = [`f.user_id = $${params.length}`];
 
     if (filters.formId) {
       params.push(filters.formId);
@@ -435,25 +454,33 @@ export class DatabaseStorage implements IStorage {
       params.push(`%${filters.ip}%`);
       where.push(`s.ip_address ILIKE $${params.length}`);
     }
-    if (typeof filters.hasAiProblem === 'boolean') {
+    if (typeof filters.hasAiProblem === "boolean") {
       if (filters.hasAiProblem) {
-        where.push(`EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`);
+        where.push(
+          `EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`
+        );
       } else {
-        where.push(`NOT EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`);
+        where.push(
+          `NOT EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`
+        );
       }
     }
-    if (typeof filters.resolved === 'boolean') {
+    if (typeof filters.resolved === "boolean") {
       if (filters.resolved) {
-        where.push(`NOT EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`);
+        where.push(
+          `NOT EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`
+        );
       } else {
-        where.push(`EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`);
+        where.push(
+          `EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`
+        );
       }
     }
-    if (typeof filters.timeMin === 'number') {
+    if (typeof filters.timeMin === "number") {
       params.push(filters.timeMin);
       where.push(`s.time_taken >= $${params.length}`);
     }
-    if (typeof filters.timeMax === 'number') {
+    if (typeof filters.timeMax === "number") {
       params.push(filters.timeMax);
       where.push(`s.time_taken <= $${params.length}`);
     }
@@ -465,7 +492,7 @@ export class DatabaseStorage implements IStorage {
       params.push(`%${filters.aiQuery}%`);
       where.push(`s.problems::text ILIKE $${params.length}`);
     }
-    if (typeof filters.hasAiConversation === 'boolean') {
+    if (typeof filters.hasAiConversation === "boolean") {
       if (filters.hasAiConversation) {
         where.push(
           `EXISTS (SELECT 1 FROM ai_conversations ac WHERE ac.submission_id = s.id)`
@@ -525,9 +552,7 @@ export class DatabaseStorage implements IStorage {
     };
   }): Promise<number> {
     const params: any[] = [userId];
-    const where: string[] = [
-      `f.user_id = $${params.length}`,
-    ];
+    const where: string[] = [`f.user_id = $${params.length}`];
 
     if (filters.formId) {
       params.push(filters.formId);
@@ -545,25 +570,33 @@ export class DatabaseStorage implements IStorage {
       params.push(`%${filters.ip}%`);
       where.push(`s.ip_address ILIKE $${params.length}`);
     }
-    if (typeof filters.hasAiProblem === 'boolean') {
+    if (typeof filters.hasAiProblem === "boolean") {
       if (filters.hasAiProblem) {
-        where.push(`EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`);
+        where.push(
+          `EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`
+        );
       } else {
-        where.push(`NOT EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`);
+        where.push(
+          `NOT EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`
+        );
       }
     }
-    if (typeof filters.resolved === 'boolean') {
+    if (typeof filters.resolved === "boolean") {
       if (filters.resolved) {
-        where.push(`NOT EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`);
+        where.push(
+          `NOT EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`
+        );
       } else {
-        where.push(`EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`);
+        where.push(
+          `EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`
+        );
       }
     }
-    if (typeof filters.timeMin === 'number') {
+    if (typeof filters.timeMin === "number") {
       params.push(filters.timeMin);
       where.push(`s.time_taken >= $${params.length}`);
     }
-    if (typeof filters.timeMax === 'number') {
+    if (typeof filters.timeMax === "number") {
       params.push(filters.timeMax);
       where.push(`s.time_taken <= $${params.length}`);
     }
@@ -575,7 +608,7 @@ export class DatabaseStorage implements IStorage {
       params.push(`%${filters.aiQuery}%`);
       where.push(`s.problems::text ILIKE $${params.length}`);
     }
-    if (typeof filters.hasAiConversation === 'boolean') {
+    if (typeof filters.hasAiConversation === "boolean") {
       if (filters.hasAiConversation) {
         where.push(
           `EXISTS (SELECT 1 FROM ai_conversations ac WHERE ac.submission_id = s.id)`
@@ -654,9 +687,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async summarizeProblems() {
-    const rows = await db
-      .select({ id: submissions.id, problems: submissions.problems })
-      .from(submissions);
+    const rows = await db.select({ id: submissions.id, problems: submissions.problems }).from(submissions);
 
     const unresolvedPairs: string[] = [];
     for (const row of rows) {
@@ -680,15 +711,14 @@ export class DatabaseStorage implements IStorage {
         submission_id: submissions.id,
         form_id: forms.id,
         title: forms.title,
+        completed_at: submissions.completedAt,
       })
       .from(submissions)
       .innerJoin(forms, eq(forms.id, submissions.formId))
       .where(inArray(submissions.id, submissionIds));
 
     const finalData = problems.map((p) => {
-      const matchingForms = submissionWithForms.filter((f) =>
-        p.ids.includes(f.submission_id)
-      );
+      const matchingForms = submissionWithForms.filter((f) => p.ids.includes(f.submission_id));
 
       return {
         ...p,
@@ -696,6 +726,7 @@ export class DatabaseStorage implements IStorage {
           form_id: f.form_id,
           title: f.title,
           submission_id: f.submission_id,
+          completed_at: f.completed_at,
         })),
       };
     });
@@ -708,10 +739,7 @@ export class DatabaseStorage implements IStorage {
     problemId: string,
     updates: { resolved?: boolean; resolutionComment?: string }
   ): Promise<Submission> {
-    const [current] = await db
-      .select()
-      .from(submissions)
-      .where(eq(submissions.id, submissionId));
+    const [current] = await db.select().from(submissions).where(eq(submissions.id, submissionId));
     if (!current) {
       throw new Error("Submission not found");
     }
@@ -722,9 +750,7 @@ export class DatabaseStorage implements IStorage {
             ...p,
             resolved: updates.resolved ?? p.resolved,
             resolutionComment:
-              typeof updates.resolutionComment === "string"
-                ? updates.resolutionComment
-                : p.resolutionComment,
+              typeof updates.resolutionComment === "string" ? updates.resolutionComment : p.resolutionComment,
           }
         : p
     );
@@ -739,10 +765,7 @@ export class DatabaseStorage implements IStorage {
     submissionIds: string[],
     resolutionComment: string
   ): Promise<number> {
-    const rows = await db
-      .select()
-      .from(submissions)
-      .where(inArray(submissions.id, submissionIds));
+    const rows = await db.select().from(submissions).where(inArray(submissions.id, submissionIds));
 
     let updatedCount = 0;
     const norm = (s: string) => s.toLowerCase().trim();
@@ -770,15 +793,119 @@ export class DatabaseStorage implements IStorage {
     return updatedCount;
   }
 
-  async saveAIConversation(
-    conversation: InsertAIConversation
-  ): Promise<AIConversation> {
-    const [newConversation] = await db
-      .insert(aiConversations)
-      .values(conversation as any)
-      .returning();
+  async saveAIConversation(conversation: InsertAIConversation): Promise<AIConversation> {
+    const [newConversation] = await db.insert(aiConversations).values(conversation as any).returning();
 
     return newConversation;
+  }
+
+  async getResolvedProblemsGrouped({
+    userId,
+    page = 1,
+    pageSize = 10,
+    filters = {},
+  }: {
+    userId: string;
+    page?: number;
+    pageSize?: number;
+    filters?: { formId?: string; dateFrom?: string; dateTo?: string; query?: string };
+  }): Promise<{
+    items: Array<{
+      problem: string;
+      count: number;
+      form: Array<{
+        form_id: string;
+        title: string | null;
+        submission_id: string;
+        completed_at: string | null;
+      }>;
+    }>;
+    total: number;
+    page: number;
+    pageSize: number;
+  }> {
+    const params: any[] = [userId];
+    const where: string[] = [
+      `f.user_id = $${params.length}`,
+      `EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == true)'))`,
+    ];
+
+    if (filters.formId) {
+      params.push(filters.formId);
+      where.push(`s.form_id = $${params.length}`);
+    }
+    if (filters.dateFrom) {
+      params.push(filters.dateFrom);
+      where.push(`s.completed_at >= $${params.length}`);
+    }
+    if (filters.dateTo) {
+      params.push(filters.dateTo);
+      where.push(`s.completed_at <= $${params.length}`);
+    }
+    if (filters.query && filters.query.trim()) {
+      params.push(`%${filters.query.trim()}%`);
+      where.push(`s.problems::text ILIKE $${params.length}`);
+    }
+
+    const sqlText = `
+      SELECT s.id, s.form_id as form_id, s.completed_at as completed_at, s.problems, f.title
+      FROM submissions s
+      JOIN forms f ON f.id = s.form_id
+      WHERE ${where.join(' AND ')}
+      ORDER BY s.completed_at DESC
+    `;
+
+    const { rows } = await pool.query<{
+      id: string;
+      form_id: string;
+      completed_at: string | null;
+      problems: any;
+      title: string | null;
+    }>(sqlText, params);
+
+    const normalize = (s: string) => s.toLowerCase().trim();
+    const groups = new Map<
+      string,
+      {
+        problem: string;
+        count: number;
+        form: Array<{
+          form_id: string;
+          title: string | null;
+          submission_id: string;
+          completed_at: string | null;
+        }>;
+      }
+    >();
+
+    for (const row of rows) {
+      const probs: Problem[] = (row as any).problems || [];
+      for (const p of probs) {
+        if (!p?.problem) continue;
+        if (p.resolved !== true) continue;
+        const key = normalize(p.problem);
+        if (!groups.has(key)) {
+          groups.set(key, { problem: p.problem, count: 0, form: [] });
+        }
+        const g = groups.get(key)!;
+        g.count += 1;
+        g.form.push({
+          form_id: row.form_id,
+          title: row.title,
+          submission_id: row.id,
+          completed_at: row.completed_at,
+        });
+      }
+    }
+
+    const all = Array.from(groups.values()).sort((a, b) => b.count - a.count);
+    const total = all.length;
+    const safePageSize = Math.max(1, Math.min(100, pageSize));
+    const safePage = Math.max(1, page);
+    const start = (safePage - 1) * safePageSize;
+    const items = all.slice(start, start + safePageSize);
+
+    return { items, total, page: safePage, pageSize: safePageSize };
   }
 
   async searchAll({
@@ -847,10 +974,7 @@ export class DatabaseStorage implements IStorage {
     `;
 
     const [formsRes, submissionsRes, aiRes] = await Promise.all([
-      pool.query<{ id: string; title: string; description: string | null }>(
-        formsSql,
-        [userId, like, limitPerType]
-      ),
+      pool.query<{ id: string; title: string; description: string | null }>(formsSql, [userId, like, limitPerType]),
       pool.query<{
         id: string;
         formId: string;
