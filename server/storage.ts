@@ -152,11 +152,8 @@ export class DatabaseStorage implements IStorage {
       FROM submissions s
       JOIN forms f ON f.id = s.form_id
       WHERE f.user_id = $1
-        AND (
-          EXISTS (
-            SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)') AS j
-          )
-          OR (s.problems IS NULL AND s.resolved = false AND s.ai_problem IS NOT NULL AND s.ai_problem <> '')
+        AND EXISTS (
+          SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)') AS j
         )
     `;
     const { rows } = await pool.query<{ count: number }>(sqlText, [userId]);
@@ -188,12 +185,8 @@ export class DatabaseStorage implements IStorage {
               'data', s.data,
               'completedAt', s.completed_at,
               'timeTaken', s.time_taken,
-              'aiProblem', s.ai_problem,
-              'aiSolutions', s.ai_solutions,
               'problems', s.problems,
-              'resolved', s.resolved,
-              'ipAddress', s.ip_address,
-              'resolutionComment', s.resolution_comment
+              'ipAddress', s.ip_address
             )
           ) FILTER (WHERE s.id IS NOT NULL),
           '[]'
@@ -270,8 +263,8 @@ export class DatabaseStorage implements IStorage {
     aiService.getSentimentAnalysis(context).then((aiResponse) => {
       try {
         const sentiment = JSON.parse(aiResponse) as unknown as
-          | { action: "action_needed" | "no_action_needed"; problems?: { problem: string; solutions?: string[] }[] }
-          | { action: "action_needed" | "no_action_needed"; reason?: string; solutions?: string[] };
+          | { problems?: { problem: string; solutions?: string[] }[] }
+          | { reason?: string; solutions?: string[] };
 
         let problems: Problem[] = [];
 
@@ -298,16 +291,12 @@ export class DatabaseStorage implements IStorage {
           ];
         }
 
-        const first = problems[0];
         this.updateSubmission(newSubmission.id, {
           formId: submission.formId,
           data: submission.data,
           timeTaken: submission.timeTaken,
           ipAddress: submission.ipAddress,
-          resolved: false,
           problems,
-          aiProblem: first?.problem,
-          aiSolutions: first?.solutions || [],
         });
       } catch (e) {
         console.error("Failed to parse AI sentiment response: ", e);
@@ -379,12 +368,8 @@ export class DatabaseStorage implements IStorage {
         data: submissions.data,
         completedAt: submissions.completedAt,
         timeTaken: submissions.timeTaken,
-        aiProblem: submissions.aiProblem,
-        aiSolutions: submissions.aiSolutions,
-        resolved: submissions.resolved,
         problems: submissions.problems,
         ipAddress: submissions.ipAddress,
-        resolutionComment: submissions.resolutionComment,
         formTitle: forms.title,
       })
       .from(submissions)
@@ -452,14 +437,17 @@ export class DatabaseStorage implements IStorage {
     }
     if (typeof filters.hasAiProblem === 'boolean') {
       if (filters.hasAiProblem) {
-        where.push(`s.ai_problem IS NOT NULL AND s.ai_problem <> ''`);
+        where.push(`EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`);
       } else {
-        where.push(`(s.ai_problem IS NULL OR s.ai_problem = '')`);
+        where.push(`NOT EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`);
       }
     }
     if (typeof filters.resolved === 'boolean') {
-      params.push(filters.resolved);
-      where.push(`s.resolved = $${params.length}`);
+      if (filters.resolved) {
+        where.push(`NOT EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`);
+      } else {
+        where.push(`EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`);
+      }
     }
     if (typeof filters.timeMin === 'number') {
       params.push(filters.timeMin);
@@ -475,7 +463,7 @@ export class DatabaseStorage implements IStorage {
     }
     if (filters.aiQuery) {
       params.push(`%${filters.aiQuery}%`);
-      where.push(`s.ai_problem ILIKE $${params.length}`);
+      where.push(`s.problems::text ILIKE $${params.length}`);
     }
     if (typeof filters.hasAiConversation === 'boolean') {
       if (filters.hasAiConversation) {
@@ -502,12 +490,8 @@ export class DatabaseStorage implements IStorage {
         s.data,
         s.completed_at as "completedAt",
         s.time_taken as "timeTaken",
-        s.ai_problem as "aiProblem",
-        s.ai_solutions as "aiSolutions",
-        s.resolved,
         s.problems,
         s.ip_address as "ipAddress",
-        s.resolution_comment as "resolutionComment",
         f.title as "formTitle"
       FROM submissions s
       LEFT JOIN forms f ON f.id = s.form_id
@@ -563,14 +547,17 @@ export class DatabaseStorage implements IStorage {
     }
     if (typeof filters.hasAiProblem === 'boolean') {
       if (filters.hasAiProblem) {
-        where.push(`s.ai_problem IS NOT NULL AND s.ai_problem <> ''`);
+        where.push(`EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`);
       } else {
-        where.push(`(s.ai_problem IS NULL OR s.ai_problem = '')`);
+        where.push(`NOT EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`);
       }
     }
     if (typeof filters.resolved === 'boolean') {
-      params.push(filters.resolved);
-      where.push(`s.resolved = $${params.length}`);
+      if (filters.resolved) {
+        where.push(`NOT EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`);
+      } else {
+        where.push(`EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`);
+      }
     }
     if (typeof filters.timeMin === 'number') {
       params.push(filters.timeMin);
@@ -586,7 +573,7 @@ export class DatabaseStorage implements IStorage {
     }
     if (filters.aiQuery) {
       params.push(`%${filters.aiQuery}%`);
-      where.push(`s.ai_problem ILIKE $${params.length}`);
+      where.push(`s.problems::text ILIKE $${params.length}`);
     }
     if (typeof filters.hasAiConversation === 'boolean') {
       if (filters.hasAiConversation) {
@@ -659,10 +646,10 @@ export class DatabaseStorage implements IStorage {
       averageTimeSeconds,
       recentResponses: recentResponses.map((response) => ({
         ...response,
-        hasAiInteractions: false, // This would need a more complex query
+        hasAiInteractions: false,
         status: "completed",
       })),
-      responsesByDay: [], // This would need aggregation by date
+      responsesByDay: [],
     };
   }
 
@@ -742,18 +729,8 @@ export class DatabaseStorage implements IStorage {
         : p
     );
 
-    const anyUnresolved = updatedProblems.some((p) => !p.resolved);
-    const firstUnresolved = updatedProblems.find((p) => !p.resolved);
-
     return await this.updateSubmission(submissionId, {
       problems: updatedProblems,
-      resolved: !anyUnresolved ? true : false,
-      aiProblem: firstUnresolved ? firstUnresolved.problem : null as any,
-      aiSolutions: firstUnresolved ? firstUnresolved.solutions : [],
-      resolutionComment:
-        updates.resolved && updates.resolutionComment
-          ? updates.resolutionComment
-          : (current as any).resolutionComment,
     });
   }
 
@@ -784,13 +761,8 @@ export class DatabaseStorage implements IStorage {
         return p;
       });
       if (changed) {
-        const anyUnresolved = next.some((p) => !p.resolved);
         await this.updateSubmission(row.id, {
           problems: next,
-          resolved: anyUnresolved ? false : true,
-          aiProblem: anyUnresolved ? next.find((p) => !p.resolved)?.problem : null as any,
-          aiSolutions: anyUnresolved ? (next.find((p) => !p.resolved)?.solutions || []) : [],
-          resolutionComment,
         });
         updatedCount++;
       }

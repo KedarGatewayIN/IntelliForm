@@ -25,29 +25,28 @@ function generateCSV(form: Form, submissions: Submission[]): string {
     "Completed At",
     "Time Taken (seconds)",
     "IP Address",
-    "AI Problem",
-    "AI Solutions",
-    "Resolved",
-    "Resolution Comment",
+    "Problems",
     ...fieldLabels
   ];
   
   // Create CSV rows
   const rows = submissions.map(submission => {
+    const problems = Array.isArray((submission as any).problems) ? (submission as any).problems as any[] : [];
+    const problemsSummary = problems.length
+      ? problems.map(p => `${p.resolved ? "[RESOLVED]" : "[OPEN]"} ${p.problem}`).join("; ")
+      : "";
+
     const baseData = [
       submission.id,
       submission.completedAt ? new Date(submission.completedAt).toISOString() : "",
-      submission.timeTaken || "",
-      submission.ipAddress || "",
-      submission.aiProblem || "",
-      Array.isArray(submission.aiSolutions) ? submission.aiSolutions.join("; ") : "",
-      submission.resolved ? "Yes" : "No",
-      submission.resolutionComment || ""
+      (submission as any).timeTaken || "",
+      (submission as any).ipAddress || "",
+      problemsSummary,
     ];
     
     // Add form field data
     const fieldData = form.fields.map(field => {
-      const value = submission.data[field.id];
+      const value = (submission as any).data[field.id];
       if (value === null || value === undefined) {
         return "";
       }
@@ -395,21 +394,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   app.put("/api/submission/:sid", auth, async (req, res) => {
     try {
-      const body = req.body as { resolved?: boolean; resolutionComment?: string };
-
-      if (body && body.resolved === true) {
-        const comment = (body.resolutionComment ?? "").trim();
-        if (!comment) {
-          return res.status(400).json({ message: "resolutionComment is required when resolving" });
-        }
-      }
-
       const updated = await storage.updateSubmission(req.params.sid, {
         ...req.body,
       });
       res.json(updated);
     } catch (error) {
-      res.status(500).json({ message: "Failed to get submissions" });
+      res.status(500).json({ message: "Failed to update submission" });
     }
   });
 
