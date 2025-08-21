@@ -10,6 +10,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import Navbar from "@/components/layout/navbar";
 import {
   Tooltip,
@@ -213,39 +216,21 @@ const TodoPage: React.FC = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <Tooltip delayDuration={100}>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="default"
-                              size="sm"
-                              className="gap-2"
-                              onClick={async () => {
-                                const resolutionComment = window.prompt(
-                                  "Add a resolution comment for this grouped problem:"
-                                );
-                                if (!resolutionComment || !resolutionComment.trim()) return;
-                                try {
-                                  const ids = item.form.map((f) => f.submission_id);
-                                  const res = await fetch("/api/problems/resolve-group", {
-                                    method: "POST",
-                                    headers: { "Content-Type": "application/json" },
-                                    credentials: "include",
-                                    body: JSON.stringify({
-                                      problem: item.problem,
-                                      submissionIds: ids,
-                                      resolutionComment: resolutionComment.trim(),
-                                    }),
-                                  });
-                                  if (!res.ok) throw new Error(await res.text());
-                                  window.location.reload();
-                                } catch (e) {
-                                  console.error(e);
-                                  alert("Failed to resolve grouped problem");
-                                }
-                              }}
-                            >
-                              Resolve Group
-                            </Button>
-                          </TooltipTrigger>
+                          <Popover>
+                            <TooltipTrigger asChild>
+                              <PopoverTrigger asChild>
+                                <Button variant="default" size="sm" className="gap-2">
+                                  Resolve Group
+                                </Button>
+                              </PopoverTrigger>
+                            </TooltipTrigger>
+                            <PopoverContent className="w-96" align="end">
+                              <div className="space-y-3">
+                                <Label htmlFor={`group-res-${idx}`} className="text-sm font-medium">Resolution Details</Label>
+                                <GroupResolveForm problem={item.problem} ids={item.form.map((f) => f.submission_id)} inputId={`group-res-${idx}`} />
+                              </div>
+                            </PopoverContent>
+                          </Popover>
                           <TooltipContent side="left">
                             Resolve this problem across all listed submissions
                           </TooltipContent>
@@ -284,3 +269,38 @@ const TodoPage: React.FC = () => {
 };
 
 export default TodoPage;
+ 
+function GroupResolveForm({ problem, ids, inputId }: { problem: string; ids: string[]; inputId: string }) {
+  const [comment, setComment] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  return (
+    <div className="space-y-3">
+      <Textarea id={inputId} value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Provide a brief resolution comment..." className="min-h-[100px]" />
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" disabled={loading} onClick={() => (window.location.href = window.location.href)}>
+          Cancel
+        </Button>
+        <Button
+          disabled={!comment.trim() || loading}
+          onClick={async () => {
+            try {
+              setLoading(true);
+              const res = await fetch("/api/problems/resolve-group", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ problem, submissionIds: ids, resolutionComment: comment.trim() }),
+              });
+              if (!res.ok) throw new Error(await res.text());
+              window.location.reload();
+            } catch (e) {
+              setLoading(false);
+            }
+          }}
+        >
+          Confirm Resolution
+        </Button>
+      </div>
+    </div>
+  );
+}

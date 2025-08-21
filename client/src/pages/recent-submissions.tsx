@@ -165,6 +165,54 @@ const formatDuration = (seconds?: number) => {
   return `${minutes}m ${remainingSeconds}s`;
 };
 
+function ResolveProblemForm({ submissionId, problemId }: { submissionId: string; problemId: string }) {
+  const [comment, setComment] = useState("");
+  const [loading, setLoading] = useState(false);
+  return (
+    <div className="space-y-3">
+      <Textarea
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        placeholder="Provide a brief resolution comment..."
+        className="min-h-[100px]"
+      />
+      <div className="flex justify-end gap-2">
+        <Button
+          disabled={loading}
+          variant="outline"
+          onClick={() => {
+            // naive close via reload; page state will re-fetch
+            window.location.reload();
+          }}
+        >
+          Cancel
+        </Button>
+        <Button
+          disabled={!comment.trim() || loading}
+          onClick={async () => {
+            try {
+              setLoading(true);
+              const res = await fetch(`/api/submission/${submissionId}/problem`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ problemId, resolved: true, resolutionComment: comment.trim() }),
+              });
+              if (!res.ok) throw new Error(await res.text());
+              window.location.reload();
+            } catch (e) {
+              setLoading(false);
+            }
+          }}
+          className="bg-green-600 hover:bg-green-700"
+        >
+          Confirm Resolve
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function RecentSubmissionsPage() {
   useTitle("Submissions");
   const [page, setPage] = useState(1);
@@ -842,26 +890,17 @@ export default function RecentSubmissionsPage() {
                                                             Mark Unresolved
                                                           </Button>
                                                         ) : (
-                                                          <Button
-                                                            size="sm"
-                                                            onClick={() => {
-                                                              const comment = window.prompt("Add a resolution comment for this problem");
-                                                              if (!comment || !comment.trim()) return;
-                                                              fetch(`/api/submission/${sub.id}/problem`, {
-                                                                method: "PUT",
-                                                                headers: { "Content-Type": "application/json" },
-                                                                credentials: "include",
-                                                                body: JSON.stringify({ problemId: p.id, resolved: true, resolutionComment: comment.trim() }),
-                                                              })
-                                                                .then((r) => {
-                                                                  if (!r.ok) throw new Error("Failed");
-                                                                  window.location.reload();
-                                                                })
-                                                                .catch(() => {});
-                                                            }}
-                                                          >
-                                                            Resolve
-                                                          </Button>
+                                                          <Popover>
+                                                            <PopoverTrigger asChild>
+                                                              <Button size="sm">Resolve</Button>
+                                                            </PopoverTrigger>
+                                                            <PopoverContent className="w-80" align="end">
+                                                              <div className="space-y-3">
+                                                                <Label htmlFor={`res-${sub.id}-${p.id}`} className="text-sm font-medium">Resolution Details</Label>
+                                                                <ResolveProblemForm submissionId={sub.id} problemId={p.id} />
+                                                              </div>
+                                                            </PopoverContent>
+                                                          </Popover>
                                                         )}
                                                       </div>
                                                     </div>
