@@ -79,10 +79,6 @@ interface Submission {
   timeTaken?: number;
   ipAddress?: string;
   problems?: { id: string; problem: string; solutions: string[]; resolved: boolean; resolutionComment: string }[];
-  aiProblem?: string | null;
-  aiSolutions?: string[];
-  resolved?: boolean;
-  resolutionComment?: string | null;
 }
 
 interface UserFormOption {
@@ -160,9 +156,9 @@ function SimplePagination({
 
 const formatDuration = (seconds?: number) => {
   if (seconds == null) return "-";
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  return `${minutes}m ${remainingSeconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}m ${s}s`;
 };
 
 function ResolveProblemForm({ submissionId, problemId }: { submissionId: string; problemId: string }) {
@@ -778,30 +774,30 @@ export default function RecentSubmissionsPage() {
                                   <Dialog>
                                     <DialogTrigger asChild>
                                       <TooltipTrigger asChild>
-                                        {!sub.aiProblem || sub.resolved ? (
-                                          <Button
-                                            variant="greenOutline"
-                                            size="sm"
-                                          >
-                                            <CheckCheck className="h-4 w-4" />
-                                          </Button>
-                                        ) : (
+                                        {sub.problems?.some(p => !p.resolved) ? (
                                           <Button
                                             variant="destructiveOutline"
                                             size="sm"
                                           >
                                             <BadgeAlert className="h-4 w-4" />
                                           </Button>
+                                        ) : (
+                                          <Button
+                                            variant="greenOutline"
+                                            size="sm"
+                                          >
+                                            <CheckCheck className="h-4 w-4" />
+                                          </Button>
                                         )}
                                       </TooltipTrigger>
                                     </DialogTrigger>
 
                                     <TooltipContent side="top" align="center">
-                                      {!sub.aiProblem
+                                      {(sub.problems?.length ?? 0) === 0
                                         ? "No problem detected"
-                                        : sub.resolved
-                                        ? "Problem Resolved"
-                                        : sub.aiProblem}
+                                        : sub.problems?.some(p => !p.resolved)
+                                          ? sub.problems?.find(p => !p.resolved)?.problem || "Action Required"
+                                          : "Problem Resolved"}
                                     </TooltipContent>
 
                                     <DialogContent className="max-w-3xl h-auto max-h-[90vh] flex flex-col overflow-hidden">
@@ -815,27 +811,27 @@ export default function RecentSubmissionsPage() {
                                       <div className="flex-1 overflow-y-auto pr-2 space-y-4 py-4">
                                         <div
                                           className={`rounded-lg p-3 border-l-4 ${
-                                            !sub.aiProblem
+                                            (sub.problems?.length ?? 0) === 0
                                               ? "bg-green-50 border-l-green-400"
-                                              : sub.resolved
-                                              ? "bg-blue-50 border-l-blue-400"
-                                              : "bg-red-50 border-l-red-400"
+                                              : sub.problems?.some(p => !p.resolved)
+                                              ? "bg-red-50 border-l-red-400"
+                                              : "bg-blue-50 border-l-blue-400"
                                           }`}
                                         >
                                           <div className="flex items-center gap-2">
-                                            {!sub.aiProblem ? (
+                                            {(sub.problems?.length ?? 0) === 0 ? (
                                               <CheckCircleIcon className="h-5 w-5 text-green-600" />
-                                            ) : sub.resolved ? (
-                                              <CheckCheck className="h-5 w-5 text-blue-600" />
-                                            ) : (
+                                            ) : sub.problems?.some(p => !p.resolved) ? (
                                               <BadgeAlert className="h-5 w-5 text-red-600" />
+                                            ) : (
+                                              <CheckCheck className="h-5 w-5 text-blue-600" />
                                             )}
                                             <span className="font-medium text-sm">
-                                              {!sub.aiProblem
+                                              {(sub.problems?.length ?? 0) === 0
                                                 ? "No Issues Detected"
-                                                : sub.resolved
-                                                ? "Issue Resolved"
-                                                : "Action Required"}
+                                                : sub.problems?.some(p => !p.resolved)
+                                                ? "Action Required"
+                                                : "Issue Resolved"}
                                             </span>
                                           </div>
                                         </div>
@@ -908,35 +904,12 @@ export default function RecentSubmissionsPage() {
                                                 </div>
                                               ) : (
                                                 <p className="text-sm text-gray-700 leading-relaxed first-letter:capitalize">
-                                                  {sub.aiProblem?.trim()?.length
-                                                    ? sub.aiProblem
-                                                    : "No AI issues were flagged for this submission."}
+                                                  No AI issues were flagged for this submission.
                                                 </p>
                                               )}
                                             </div>
                                           </CardContent>
                                         </Card>
-
-                                        {sub.resolved && (
-                                          <Card className="shadow-sm border-0 bg-gradient-to-r from-green-50 to-emerald-50">
-                                            <CardHeader className="pb-2">
-                                              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                                                <CheckCircleIcon className="h-4 w-4 text-green-500" />
-                                                Resolution Details
-                                              </CardTitle>
-                                            </CardHeader>
-                                            <CardContent className="pt-0">
-                                              <div className="bg-white rounded-md p-3 border border-green-100">
-                                                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                                                  {sub.resolutionComment?.trim()
-                                                    ?.length
-                                                    ? sub.resolutionComment
-                                                    : "This issue has been marked as resolved without additional details."}
-                                                </p>
-                                              </div>
-                                            </CardContent>
-                                          </Card>
-                                        )}
                                       </div>
 
                                       <DialogFooter className="pt-4 border-t bg-gray-50 -mx-6 -mb-6 px-6 pb-6 rounded-b-lg">
@@ -946,133 +919,8 @@ export default function RecentSubmissionsPage() {
                                             ...
                                           </div>
                                           <div className="flex gap-3">
-                                            {!sub.aiProblem ? (
-                                              <Button
-                                                variant="outline"
-                                                disabled
-                                              >
-                                                No Action Needed
-                                              </Button>
-                                            ) : sub.resolved ? (
-                                              <Button
-                                                variant="destructive"
-                                                onClick={() =>
-                                                  updateSubmissionResolved(
-                                                    sub.id,
-                                                    false
-                                                  )
-                                                }
-                                              >
-                                                <CircleX className="h-4 w-4 mr-2" />
-                                                Mark as Unresolved
-                                              </Button>
-                                            ) : (
-                                              <Popover
-                                                open={
-                                                  resolvePopover.submissionId ===
-                                                    sub.id &&
-                                                  resolvePopover.anchor ===
-                                                    "dialog"
-                                                }
-                                                onOpenChange={(open) => {
-                                                  if (!open) {
-                                                    setResolvePopover({
-                                                      submissionId: null,
-                                                      anchor: null,
-                                                    });
-                                                    setResolutionComment("");
-                                                  }
-                                                }}
-                                              >
-                                                <PopoverTrigger asChild>
-                                                  <Button
-                                                    className="bg-green-600 hover:bg-green-700"
-                                                    onClick={() =>
-                                                      updateSubmissionResolved(
-                                                        sub.id,
-                                                        true,
-                                                        undefined,
-                                                        "dialog"
-                                                      )
-                                                    }
-                                                  >
-                                                    <CheckCircleIcon className="h-4 w-4 mr-2" />
-                                                    Mark as Resolved
-                                                  </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent
-                                                  className="w-96"
-                                                  align="end"
-                                                >
-                                                  <div className="space-y-3">
-                                                    <div>
-                                                      <Label
-                                                        htmlFor={`resolution-${sub.id}`}
-                                                        className="text-sm font-medium"
-                                                      >
-                                                        Resolution Details
-                                                      </Label>
-                                                      <p className="text-xs text-gray-500 mt-1">
-                                                        Describe how you
-                                                        resolved this issue for
-                                                        future reference
-                                                      </p>
-                                                    </div>
-                                                    <Textarea
-                                                      id={`resolution-${sub.id}`}
-                                                      value={resolutionComment}
-                                                      onChange={(e) =>
-                                                        setResolutionComment(
-                                                          e.target.value
-                                                        )
-                                                      }
-                                                      placeholder="Add details about how you resolved this"
-                                                      rows={4}
-                                                      className="resize-none"
-                                                    />
-                                                    <div className="flex justify-end gap-2">
-                                                      <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => {
-                                                          setResolvePopover({
-                                                            submissionId: null,
-                                                            anchor: null,
-                                                          });
-                                                          setResolutionComment(
-                                                            ""
-                                                          );
-                                                        }}
-                                                      >
-                                                        Cancel
-                                                      </Button>
-                                                      <Button
-                                                        size="sm"
-                                                        onClick={() =>
-                                                          updateSubmissionResolved(
-                                                            sub.id,
-                                                            true,
-                                                            resolutionComment
-                                                          )
-                                                        }
-                                                        disabled={
-                                                          !resolutionComment.trim()
-                                                            .length
-                                                        }
-                                                        className="bg-green-600 hover:bg-green-700"
-                                                      >
-                                                        <CheckCircleIcon className="h-4 w-4 mr-1" />
-                                                        Confirm Resolution
-                                                      </Button>
-                                                    </div>
-                                                  </div>
-                                                </PopoverContent>
-                                              </Popover>
-                                            )}
                                             <DialogClose asChild>
-                                              <Button variant="outline">
-                                                Close
-                                              </Button>
+                                              <Button variant="outline">Close</Button>
                                             </DialogClose>
                                           </div>
                                         </div>
@@ -1167,30 +1015,30 @@ export default function RecentSubmissionsPage() {
                                   <Dialog>
                                     <DialogTrigger asChild>
                                       <TooltipTrigger asChild>
-                                        {!sub.aiProblem || sub.resolved ? (
-                                          <Button
-                                            variant="greenOutline"
-                                            size="sm"
-                                          >
-                                            <CheckCheck className="h-4 w-4" />
-                                          </Button>
-                                        ) : (
+                                        {sub.problems?.some(p => !p.resolved) ? (
                                           <Button
                                             variant="destructiveOutline"
                                             size="sm"
                                           >
                                             <BadgeAlert className="h-4 w-4" />
                                           </Button>
+                                        ) : (
+                                          <Button
+                                            variant="greenOutline"
+                                            size="sm"
+                                          >
+                                            <CheckCheck className="h-4 w-4" />
+                                          </Button>
                                         )}
                                       </TooltipTrigger>
                                     </DialogTrigger>
 
                                     <TooltipContent side="top" align="center">
-                                      {!sub.aiProblem
+                                      {(sub.problems?.length ?? 0) === 0
                                         ? "No problem detected"
-                                        : sub.resolved
-                                        ? "Problem Resolved"
-                                        : sub.aiProblem}
+                                        : sub.problems?.some(p => !p.resolved)
+                                          ? sub.problems?.find(p => !p.resolved)?.problem || "Action Required"
+                                          : "Problem Resolved"}
                                     </TooltipContent>
 
                                     <DialogContent className="max-w-3xl h-auto max-h-[90vh] flex flex-col overflow-hidden">
@@ -1204,27 +1052,27 @@ export default function RecentSubmissionsPage() {
                                       <div className="flex-1 overflow-y-auto pr-2 space-y-4 py-4">
                                         <div
                                           className={`rounded-lg p-3 border-l-4 ${
-                                            !sub.aiProblem
+                                            (sub.problems?.length ?? 0) === 0
                                               ? "bg-green-50 border-l-green-400"
-                                              : sub.resolved
-                                              ? "bg-blue-50 border-l-blue-400"
-                                              : "bg-red-50 border-l-red-400"
+                                              : sub.problems?.some(p => !p.resolved)
+                                              ? "bg-red-50 border-l-red-400"
+                                              : "bg-blue-50 border-l-blue-400"
                                           }`}
                                         >
                                           <div className="flex items-center gap-2">
-                                            {!sub.aiProblem ? (
+                                            {(sub.problems?.length ?? 0) === 0 ? (
                                               <CheckCircleIcon className="h-5 w-5 text-green-600" />
-                                            ) : sub.resolved ? (
-                                              <CheckCheck className="h-5 w-5 text-blue-600" />
-                                            ) : (
+                                            ) : sub.problems?.some(p => !p.resolved) ? (
                                               <BadgeAlert className="h-5 w-5 text-red-600" />
+                                            ) : (
+                                              <CheckCheck className="h-5 w-5 text-blue-600" />
                                             )}
                                             <span className="font-medium text-sm">
-                                              {!sub.aiProblem
+                                              {(sub.problems?.length ?? 0) === 0
                                                 ? "No Issues Detected"
-                                                : sub.resolved
-                                                ? "Issue Resolved"
-                                                : "Action Required"}
+                                                : sub.problems?.some(p => !p.resolved)
+                                                ? "Action Required"
+                                                : "Issue Resolved"}
                                             </span>
                                           </div>
                                         </div>
@@ -1237,36 +1085,72 @@ export default function RecentSubmissionsPage() {
                                             </CardTitle>
                                           </CardHeader>
                                           <CardContent className="pt-0">
-                                            <div className="bg-white rounded-md p-3 border border-red-100">
-                                              <p className="text-sm text-gray-700 leading-relaxed first-letter:capitalize">
-                                                {sub.aiProblem?.trim()?.length
-                                                  ? sub.aiProblem
-                                                  : "No AI issues were flagged for this submission."}
-                                              </p>
+                                            <div className="bg-white rounded-md p-3 border border-red-100 space-y-3">
+                                              {sub.problems && sub.problems.length > 0 ? (
+                                                <div className="space-y-2">
+                                                  {sub.problems.map((p) => (
+                                                    <div key={p.id} className="flex items-start justify-between gap-3 border-b last:border-b-0 pb-2 last:pb-0">
+                                                      <div>
+                                                        <p className="text-sm text-gray-800 first-letter:capitalize">
+                                                          {p.problem}
+                                                        </p>
+                                                        {p.solutions && p.solutions.length > 0 && (
+                                                          <ul className="list-disc pl-5 mt-1 text-xs text-gray-600">
+                                                            {p.solutions.map((s, i) => (
+                                                              <li key={i}>{s}</li>
+                                                            ))}
+                                                          </ul>
+                                                        )}
+                                                        {p.resolved && p.resolutionComment && (
+                                                          <p className="text-xs text-gray-500 mt-1 whitespace-pre-wrap">{p.resolutionComment}</p>
+                                                        )}
+                                                      </div>
+                                                      <div className="shrink-0">
+                                                        {p.resolved ? (
+                                                          <Button
+                                                            variant="destructive"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                              fetch(`/api/submission/${sub.id}/problem`, {
+                                                                method: "PUT",
+                                                                headers: { "Content-Type": "application/json" },
+                                                                credentials: "include",
+                                                                body: JSON.stringify({ problemId: p.id, resolved: false }),
+                                                              })
+                                                                .then((r) => {
+                                                                  if (!r.ok) throw new Error("Failed");
+                                                                  window.location.reload();
+                                                                })
+                                                                .catch(() => {})
+                                                            }
+                                                          >
+                                                            Mark Unresolved
+                                                          </Button>
+                                                        ) : (
+                                                          <Popover>
+                                                            <PopoverTrigger asChild>
+                                                              <Button size="sm">Resolve</Button>
+                                                            </PopoverTrigger>
+                                                            <PopoverContent className="w-80" align="end">
+                                                              <div className="space-y-3">
+                                                                <Label htmlFor={`res-${sub.id}-${p.id}`} className="text-sm font-medium">Resolution Details</Label>
+                                                                <ResolveProblemForm submissionId={sub.id} problemId={p.id} />
+                                                              </div>
+                                                            </PopoverContent>
+                                                          </Popover>
+                                                        )}
+                                                      </div>
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              ) : (
+                                                <p className="text-sm text-gray-700 leading-relaxed first-letter:capitalize">
+                                                  No AI issues were flagged for this submission.
+                                                </p>
+                                              )}
                                             </div>
                                           </CardContent>
                                         </Card>
-
-                                        {sub.resolved && (
-                                          <Card className="shadow-sm border-0 bg-gradient-to-r from-green-50 to-emerald-50">
-                                            <CardHeader className="pb-2">
-                                              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                                                <CheckCircleIcon className="h-4 w-4 text-green-500" />
-                                                Resolution Details
-                                              </CardTitle>
-                                            </CardHeader>
-                                            <CardContent className="pt-0">
-                                              <div className="bg-white rounded-md p-3 border border-green-100">
-                                                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                                                  {sub.resolutionComment?.trim()
-                                                    ?.length
-                                                    ? sub.resolutionComment
-                                                    : "This issue has been marked as resolved without additional details."}
-                                                </p>
-                                              </div>
-                                            </CardContent>
-                                          </Card>
-                                        )}
                                       </div>
 
                                       <DialogFooter className="pt-4 border-t bg-gray-50 -mx-6 -mb-6 px-6 pb-6 rounded-b-lg">
@@ -1276,133 +1160,8 @@ export default function RecentSubmissionsPage() {
                                             ...
                                           </div>
                                           <div className="flex gap-3">
-                                            {!sub.aiProblem ? (
-                                              <Button
-                                                variant="outline"
-                                                disabled
-                                              >
-                                                No Action Needed
-                                              </Button>
-                                            ) : sub.resolved ? (
-                                              <Button
-                                                variant="destructive"
-                                                onClick={() =>
-                                                  updateSubmissionResolved(
-                                                    sub.id,
-                                                    false
-                                                  )
-                                                }
-                                              >
-                                                <CircleX className="h-4 w-4 mr-2" />
-                                                Mark as Unresolved
-                                              </Button>
-                                            ) : (
-                                              <Popover
-                                                open={
-                                                  resolvePopover.submissionId ===
-                                                    sub.id &&
-                                                  resolvePopover.anchor ===
-                                                    "dialog"
-                                                }
-                                                onOpenChange={(open) => {
-                                                  if (!open) {
-                                                    setResolvePopover({
-                                                      submissionId: null,
-                                                      anchor: null,
-                                                    });
-                                                    setResolutionComment("");
-                                                  }
-                                                }}
-                                              >
-                                                <PopoverTrigger asChild>
-                                                  <Button
-                                                    className="bg-green-600 hover:bg-green-700"
-                                                    onClick={() =>
-                                                      updateSubmissionResolved(
-                                                        sub.id,
-                                                        true,
-                                                        undefined,
-                                                        "dialog"
-                                                      )
-                                                    }
-                                                  >
-                                                    <CheckCircleIcon className="h-4 w-4 mr-2" />
-                                                    Mark as Resolved
-                                                  </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent
-                                                  className="w-96"
-                                                  align="end"
-                                                >
-                                                  <div className="space-y-3">
-                                                    <div>
-                                                      <Label
-                                                        htmlFor={`resolution-${sub.id}`}
-                                                        className="text-sm font-medium"
-                                                      >
-                                                        Resolution Details
-                                                      </Label>
-                                                      <p className="text-xs text-gray-500 mt-1">
-                                                        Describe how you
-                                                        resolved this issue for
-                                                        future reference
-                                                      </p>
-                                                    </div>
-                                                    <Textarea
-                                                      id={`resolution-${sub.id}`}
-                                                      value={resolutionComment}
-                                                      onChange={(e) =>
-                                                        setResolutionComment(
-                                                          e.target.value
-                                                        )
-                                                      }
-                                                      placeholder="Add details about how you resolved this"
-                                                      rows={4}
-                                                      className="resize-none"
-                                                    />
-                                                    <div className="flex justify-end gap-2">
-                                                      <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => {
-                                                          setResolvePopover({
-                                                            submissionId: null,
-                                                            anchor: null,
-                                                          });
-                                                          setResolutionComment(
-                                                            ""
-                                                          );
-                                                        }}
-                                                      >
-                                                        Cancel
-                                                      </Button>
-                                                      <Button
-                                                        size="sm"
-                                                        onClick={() =>
-                                                          updateSubmissionResolved(
-                                                            sub.id,
-                                                            true,
-                                                            resolutionComment
-                                                          )
-                                                        }
-                                                        disabled={
-                                                          !resolutionComment.trim()
-                                                            .length
-                                                        }
-                                                        className="bg-green-600 hover:bg-green-700"
-                                                      >
-                                                        <CheckCircleIcon className="h-4 w-4 mr-1" />
-                                                        Confirm Resolution
-                                                      </Button>
-                                                    </div>
-                                                  </div>
-                                                </PopoverContent>
-                                              </Popover>
-                                            )}
                                             <DialogClose asChild>
-                                              <Button variant="outline">
-                                                Close
-                                              </Button>
+                                              <Button variant="outline">Close</Button>
                                             </DialogClose>
                                           </div>
                                         </div>
