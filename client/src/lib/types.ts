@@ -49,10 +49,19 @@ export interface Submission {
   timeTaken?: number;
   ipAddress?: string;
   resolved?: boolean;
+  problems?: Problem[];
   aiProblem?: string | null;
   aiSolutions?: string[];
   resolutionComment?: string | null;
   aiConversations?: AIConversation[];
+}
+
+export interface Problem {
+  id: string;
+  problem: string;
+  solutions: string[];
+  resolved: boolean;
+  resolutionComment: string;
 }
 
 export interface AIConversation {

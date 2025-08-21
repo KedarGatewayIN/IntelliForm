@@ -413,6 +413,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update a specific problem within a submission
+  app.put("/api/submission/:sid/problem", auth, async (req, res) => {
+    try {
+      const { problemId, resolved, resolutionComment } = req.body as {
+        problemId: string;
+        resolved?: boolean;
+        resolutionComment?: string;
+      };
+      if (!problemId) {
+        return res.status(400).json({ message: "problemId is required" });
+      }
+      if (resolved === true) {
+        const comment = (resolutionComment ?? "").trim();
+        if (!comment) {
+          return res.status(400).json({ message: "resolutionComment is required when resolving" });
+        }
+      }
+
+      const updated = await storage.updateSubmissionProblem(req.params.sid, problemId, {
+        resolved,
+        resolutionComment,
+      });
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update problem" });
+    }
+  });
+
+  // Resolve a grouped problem across multiple submissions
+  app.post("/api/problems/resolve-group", auth, async (req, res) => {
+    try {
+      const { problem, submissionIds, resolutionComment } = req.body as {
+        problem: string;
+        submissionIds: string[];
+        resolutionComment: string;
+      };
+      if (!problem || !Array.isArray(submissionIds) || submissionIds.length === 0) {
+        return res.status(400).json({ message: "problem and submissionIds are required" });
+      }
+      if (!resolutionComment || !resolutionComment.trim()) {
+        return res.status(400).json({ message: "resolutionComment is required" });
+      }
+      const updatedCount = await storage.resolveGroupedProblem(problem, submissionIds, resolutionComment.trim());
+      res.json({ updatedCount });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to resolve grouped problem" });
+    }
+  });
+
   app.get("/api/forms/:id/analytics", auth, async (req, res) => {
     try {
       const form = await storage.getForm(req.params.id);

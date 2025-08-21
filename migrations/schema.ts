@@ -53,6 +53,7 @@ export const submissions = pgTable("submissions", {
 	completedAt: timestamp("completed_at", { mode: 'string' }).defaultNow().notNull(),
 	timeTaken: integer("time_taken"),
 	ipAddress: text("ip_address"),
+	problems: json().default([]).notNull(),
 	aiProblem: text("ai_problem"),
 	resolved: boolean().default(false).notNull(),
 	resolutionComment: text("resolution_comment"),

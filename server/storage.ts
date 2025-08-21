@@ -13,6 +13,8 @@ import {
   type InsertAIConversation,
 } from "@shared/schema";
 import { db, pool } from "./db";
+import { Problem } from "@shared/schema";
+import { randomUUID } from "crypto";
 import {
   eq,
   desc,
@@ -144,18 +146,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserTodoCount(userId: string): Promise<number> {
-    const [result] = await db
-      .select({ count: count() })
-      .from(submissions)
-      .leftJoin(forms, eq(submissions.formId, forms.id))
-      .where(
-        and(
-          eq(forms.userId, userId),
-          eq(submissions.resolved, false),
-          isNotNull(submissions.aiProblem)
+    // Count submissions that have at least one unresolved problem
+    const sqlText = `
+      SELECT COUNT(*)::int AS count
+      FROM submissions s
+      JOIN forms f ON f.id = s.form_id
+      WHERE f.user_id = $1
+        AND (
+          EXISTS (
+            SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)') AS j
+          )
+          OR (s.problems IS NULL AND s.resolved = false AND s.ai_problem IS NOT NULL AND s.ai_problem <> '')
         )
-      );
-    return result?.count || 0;
+    `;
+    const { rows } = await pool.query<{ count: number }>(sqlText, [userId]);
+    return rows[0]?.count || 0;
   }
 
   async getUserForms(userId: string): Promise<(Form & {
@@ -185,6 +190,7 @@ export class DatabaseStorage implements IStorage {
               'timeTaken', s.time_taken,
               'aiProblem', s.ai_problem,
               'aiSolutions', s.ai_solutions,
+              'problems', s.problems,
               'resolved', s.resolved,
               'ipAddress', s.ip_address,
               'resolutionComment', s.resolution_comment
@@ -262,22 +268,50 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     aiService.getSentimentAnalysis(context).then((aiResponse) => {
-      const sentiment = JSON.parse(aiResponse) as unknown as {
-        action: "action_needed" | "no_action_needed";
-        reason?: string;
-        solutions?: string[];
-      };
-      this.updateSubmission(newSubmission.id, {
-        formId: submission.formId,
-        data: submission.data,
-        timeTaken: submission.timeTaken,
-        ipAddress: submission.ipAddress,
-        resolved: false,
-        aiProblem: sentiment?.reason,
-        aiSolutions: Array.isArray(sentiment?.solutions)
-          ? sentiment.solutions.slice(0, 3)
-          : [],
-      });
+      try {
+        const sentiment = JSON.parse(aiResponse) as unknown as
+          | { action: "action_needed" | "no_action_needed"; problems?: { problem: string; solutions?: string[] }[] }
+          | { action: "action_needed" | "no_action_needed"; reason?: string; solutions?: string[] };
+
+        let problems: Problem[] = [];
+
+        if ("problems" in sentiment && Array.isArray(sentiment.problems)) {
+          problems = sentiment.problems
+            .filter((p) => p && typeof p.problem === "string" && p.problem.trim().length > 0)
+            .slice(0, 10)
+            .map((p) => ({
+              id: randomUUID(),
+              problem: p.problem.trim(),
+              solutions: Array.isArray(p.solutions) ? p.solutions.slice(0, 3) : [],
+              resolved: false,
+              resolutionComment: "",
+            }));
+        } else if ("reason" in sentiment && typeof sentiment.reason === "string" && sentiment.reason.trim().length > 0) {
+          problems = [
+            {
+              id: randomUUID(),
+              problem: sentiment.reason.trim(),
+              solutions: Array.isArray((sentiment as any).solutions) ? (sentiment as any).solutions!.slice(0, 3) : [],
+              resolved: false,
+              resolutionComment: "",
+            },
+          ];
+        }
+
+        const first = problems[0];
+        this.updateSubmission(newSubmission.id, {
+          formId: submission.formId,
+          data: submission.data,
+          timeTaken: submission.timeTaken,
+          ipAddress: submission.ipAddress,
+          resolved: false,
+          problems,
+          aiProblem: first?.problem,
+          aiSolutions: first?.solutions || [],
+        });
+      } catch (e) {
+        console.error("Failed to parse AI sentiment response: ", e);
+      }
     });
 
     return newSubmission;
@@ -348,6 +382,7 @@ export class DatabaseStorage implements IStorage {
         aiProblem: submissions.aiProblem,
         aiSolutions: submissions.aiSolutions,
         resolved: submissions.resolved,
+        problems: submissions.problems,
         ipAddress: submissions.ipAddress,
         resolutionComment: submissions.resolutionComment,
         formTitle: forms.title,
@@ -470,6 +505,7 @@ export class DatabaseStorage implements IStorage {
         s.ai_problem as "aiProblem",
         s.ai_solutions as "aiSolutions",
         s.resolved,
+        s.problems,
         s.ip_address as "ipAddress",
         s.resolution_comment as "resolutionComment",
         f.title as "formTitle"
@@ -631,19 +667,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async summarizeProblems() {
-    const aiProblems = await db
-      .select({
-        aiProblem: submissions.aiProblem,
-        id: submissions.id,
-      })
-      .from(submissions)
-      .where(
-        and(eq(submissions.resolved, false), isNotNull(submissions.aiProblem))
-      );
+    const rows = await db
+      .select({ id: submissions.id, problems: submissions.problems })
+      .from(submissions);
 
-    const unresolvedProblems = aiProblems
-      .map((row) => `${row.aiProblem} - ${row.id}`)
-      .join(", ");
+    const unresolvedPairs: string[] = [];
+    for (const row of rows) {
+      const probs = (row.problems as unknown as Problem[]) || [];
+      for (const p of probs) {
+        if (p && p.problem && p.problem.trim().length > 0 && !p.resolved) {
+          unresolvedPairs.push(`${p.problem} - ${row.id}`);
+        }
+      }
+    }
+
+    const unresolvedProblems = unresolvedPairs.join(", ");
+    if (!unresolvedProblems.trim()) {
+      return [] as any;
+    }
     const problems = await aiService.getProblemRanking(unresolvedProblems);
     const submissionIds = Array.from(new Set(problems.flatMap((p) => p.ids)));
 
@@ -673,6 +714,88 @@ export class DatabaseStorage implements IStorage {
     });
 
     return finalData.sort((a, b) => b.count - a.count);
+  }
+
+  async updateSubmissionProblem(
+    submissionId: string,
+    problemId: string,
+    updates: { resolved?: boolean; resolutionComment?: string }
+  ): Promise<Submission> {
+    const [current] = await db
+      .select()
+      .from(submissions)
+      .where(eq(submissions.id, submissionId));
+    if (!current) {
+      throw new Error("Submission not found");
+    }
+    const currentProblems: Problem[] = (current as any).problems || [];
+    const updatedProblems: Problem[] = currentProblems.map((p) =>
+      p.id === problemId
+        ? {
+            ...p,
+            resolved: updates.resolved ?? p.resolved,
+            resolutionComment:
+              typeof updates.resolutionComment === "string"
+                ? updates.resolutionComment
+                : p.resolutionComment,
+          }
+        : p
+    );
+
+    const anyUnresolved = updatedProblems.some((p) => !p.resolved);
+    const firstUnresolved = updatedProblems.find((p) => !p.resolved);
+
+    return await this.updateSubmission(submissionId, {
+      problems: updatedProblems,
+      resolved: !anyUnresolved ? true : false,
+      aiProblem: firstUnresolved ? firstUnresolved.problem : null as any,
+      aiSolutions: firstUnresolved ? firstUnresolved.solutions : [],
+      resolutionComment:
+        updates.resolved && updates.resolutionComment
+          ? updates.resolutionComment
+          : (current as any).resolutionComment,
+    });
+  }
+
+  async resolveGroupedProblem(
+    canonicalProblem: string,
+    submissionIds: string[],
+    resolutionComment: string
+  ): Promise<number> {
+    const rows = await db
+      .select()
+      .from(submissions)
+      .where(inArray(submissions.id, submissionIds));
+
+    let updatedCount = 0;
+    const norm = (s: string) => s.toLowerCase().trim();
+    const canon = norm(canonicalProblem);
+
+    for (const row of rows) {
+      const probs: Problem[] = ((row as any).problems as Problem[]) || [];
+      let changed = false;
+      const next: Problem[] = probs.map((p) => {
+        const pp = norm(p.problem);
+        const matches = pp === canon || pp.includes(canon) || canon.includes(pp);
+        if (!p.resolved && matches) {
+          changed = true;
+          return { ...p, resolved: true, resolutionComment };
+        }
+        return p;
+      });
+      if (changed) {
+        const anyUnresolved = next.some((p) => !p.resolved);
+        await this.updateSubmission(row.id, {
+          problems: next,
+          resolved: anyUnresolved ? false : true,
+          aiProblem: anyUnresolved ? next.find((p) => !p.resolved)?.problem : null as any,
+          aiSolutions: anyUnresolved ? (next.find((p) => !p.resolved)?.solutions || []) : [],
+          resolutionComment,
+        });
+        updatedCount++;
+      }
+    }
+    return updatedCount;
   }
 
   async saveAIConversation(

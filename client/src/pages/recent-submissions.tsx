@@ -78,6 +78,7 @@ interface Submission {
   completedAt: string;
   timeTaken?: number;
   ipAddress?: string;
+  problems?: { id: string; problem: string; solutions: string[]; resolved: boolean; resolutionComment: string }[];
   aiProblem?: string | null;
   aiSolutions?: string[];
   resolved?: boolean;
@@ -799,12 +800,80 @@ export default function RecentSubmissionsPage() {
                                             </CardTitle>
                                           </CardHeader>
                                           <CardContent className="pt-0">
-                                            <div className="bg-white rounded-md p-3 border border-red-100">
-                                              <p className="text-sm text-gray-700 leading-relaxed first-letter:capitalize">
-                                                {sub.aiProblem?.trim()?.length
-                                                  ? sub.aiProblem
-                                                  : "No AI issues were flagged for this submission."}
-                                              </p>
+                                            <div className="bg-white rounded-md p-3 border border-red-100 space-y-3">
+                                              {sub.problems && sub.problems.length > 0 ? (
+                                                <div className="space-y-2">
+                                                  {sub.problems.map((p) => (
+                                                    <div key={p.id} className="flex items-start justify-between gap-3 border-b last:border-b-0 pb-2 last:pb-0">
+                                                      <div>
+                                                        <p className="text-sm text-gray-800 first-letter:capitalize">
+                                                          {p.problem}
+                                                        </p>
+                                                        {p.solutions && p.solutions.length > 0 && (
+                                                          <ul className="list-disc pl-5 mt-1 text-xs text-gray-600">
+                                                            {p.solutions.map((s, i) => (
+                                                              <li key={i}>{s}</li>
+                                                            ))}
+                                                          </ul>
+                                                        )}
+                                                        {p.resolved && p.resolutionComment && (
+                                                          <p className="text-xs text-gray-500 mt-1 whitespace-pre-wrap">{p.resolutionComment}</p>
+                                                        )}
+                                                      </div>
+                                                      <div className="shrink-0">
+                                                        {p.resolved ? (
+                                                          <Button
+                                                            variant="destructive"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                              fetch(`/api/submission/${sub.id}/problem`, {
+                                                                method: "PUT",
+                                                                headers: { "Content-Type": "application/json" },
+                                                                credentials: "include",
+                                                                body: JSON.stringify({ problemId: p.id, resolved: false }),
+                                                              })
+                                                                .then((r) => {
+                                                                  if (!r.ok) throw new Error("Failed");
+                                                                  window.location.reload();
+                                                                })
+                                                                .catch(() => {})
+                                                            }
+                                                          >
+                                                            Mark Unresolved
+                                                          </Button>
+                                                        ) : (
+                                                          <Button
+                                                            size="sm"
+                                                            onClick={() => {
+                                                              const comment = window.prompt("Add a resolution comment for this problem");
+                                                              if (!comment || !comment.trim()) return;
+                                                              fetch(`/api/submission/${sub.id}/problem`, {
+                                                                method: "PUT",
+                                                                headers: { "Content-Type": "application/json" },
+                                                                credentials: "include",
+                                                                body: JSON.stringify({ problemId: p.id, resolved: true, resolutionComment: comment.trim() }),
+                                                              })
+                                                                .then((r) => {
+                                                                  if (!r.ok) throw new Error("Failed");
+                                                                  window.location.reload();
+                                                                })
+                                                                .catch(() => {});
+                                                            }}
+                                                          >
+                                                            Resolve
+                                                          </Button>
+                                                        )}
+                                                      </div>
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              ) : (
+                                                <p className="text-sm text-gray-700 leading-relaxed first-letter:capitalize">
+                                                  {sub.aiProblem?.trim()?.length
+                                                    ? sub.aiProblem
+                                                    : "No AI issues were flagged for this submission."}
+                                                </p>
+                                              )}
                                             </div>
                                           </CardContent>
                                         </Card>

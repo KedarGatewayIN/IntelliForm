@@ -44,6 +44,7 @@ const TodoPage: React.FC = () => {
         submission_id: string;
       }[];
       solutions: string[];
+      ids?: string[];
     }[];
   }>({
     queryKey: ["/api/ai/summarize-problems"],
@@ -86,6 +87,7 @@ const TodoPage: React.FC = () => {
                     </TableHead>
                     <TableHead>Solutions</TableHead>
                     <TableHead>Submissions</TableHead>
+                    <TableHead className="text-right">Resolve</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -208,6 +210,46 @@ const TodoPage: React.FC = () => {
                             ))}
                           </DropdownMenuContent>
                         </DropdownMenu>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Tooltip delayDuration={100}>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              className="gap-2"
+                              onClick={async () => {
+                                const resolutionComment = window.prompt(
+                                  "Add a resolution comment for this grouped problem:"
+                                );
+                                if (!resolutionComment || !resolutionComment.trim()) return;
+                                try {
+                                  const ids = item.form.map((f) => f.submission_id);
+                                  const res = await fetch("/api/problems/resolve-group", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    credentials: "include",
+                                    body: JSON.stringify({
+                                      problem: item.problem,
+                                      submissionIds: ids,
+                                      resolutionComment: resolutionComment.trim(),
+                                    }),
+                                  });
+                                  if (!res.ok) throw new Error(await res.text());
+                                  window.location.reload();
+                                } catch (e) {
+                                  console.error(e);
+                                  alert("Failed to resolve grouped problem");
+                                }
+                              }}
+                            >
+                              Resolve Group
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="left">
+                            Resolve this problem across all listed submissions
+                          </TooltipContent>
+                        </Tooltip>
                       </TableCell>
                     </TableRow>
                   ))}
