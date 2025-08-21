@@ -63,11 +63,7 @@ interface ISubmission {
   data: { [key: string]: string };
   completedAt: string;
   timeTaken: number;
-  aiProblem: string | null;
-  aiSolutions: string[];
-  resolved: boolean;
   ipAddress: string;
-  resolutionComment?: string;
   problems?: { id: string; problem: string; solutions: string[]; resolved: boolean; resolutionComment: string }[];
   aiConversations: Array<{
     id: string;
@@ -87,8 +83,6 @@ export default function FormAnalytics() {
   const queryClient = useQueryClient();
   const { setUser } = useAuth();
 
-  const [resolvePopover, setResolvePopover] = useState<{ submissionId: string | null; anchor: "row" | "dialog" | null }>({ submissionId: null, anchor: null });
-  const [resolutionComment, setResolutionComment] = useState<string>("");
   const [problemResolvePopover, setProblemResolvePopover] = useState<{ submissionId: string | null; problemId: string | null }>({ submissionId: null, problemId: null });
   const [problemResolutionComment, setProblemResolutionComment] = useState<string>("");
 
@@ -117,47 +111,6 @@ export default function FormAnalytics() {
       hour: "2-digit",
       minute: "2-digit",
     });
-  };
-
-  const updateSubmissionResolved = (
-    submission_id: string,
-    resolved: boolean,
-    comment?: string,
-    anchor?: "row" | "dialog"
-  ) => {
-    if (resolved) {
-      if (!comment || !comment.trim()) {
-        setResolvePopover({ submissionId: submission_id, anchor: anchor ?? "row" });
-        return;
-      }
-    }
-    fetch(`/api/submission/${submission_id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ resolved, resolutionComment: resolved ? comment?.trim() : undefined }),
-    })
-      .then(async (r) => {
-        if (!r.ok) throw new Error(await r.text());
-        return r.json();
-      })
-      .then((updated: ISubmission) => {
-        toast({ title: "Update Successful", description: resolved ? "Submission marked as resolved." : "Submission marked as unresolved." });
-        queryClient.setQueryData<ISubmission[]>(["/api/forms", params.id, "submissions"], (old) => {
-          if (!old) return [];
-          return old.map((s) => (s.id === submission_id ? { ...s, ...updated } : s));
-        });
-        setUser((prev) => {
-          if (!prev) return prev;
-          prev.todoCount += resolved ? -1 : 1;
-          return { ...prev } as any;
-        });
-        setResolvePopover({ submissionId: null, anchor: null });
-        setResolutionComment("");
-      })
-      .catch(() => {
-        toast({ title: "Update Failed", description: "Failed to update submission status.", variant: "destructive" });
-      });
   };
 
   const updateSubmissionProblem = (
@@ -237,19 +190,23 @@ export default function FormAnalytics() {
                           <Dialog>
                             <DialogTrigger asChild>
                               <TooltipTrigger asChild>
-                                {!submission.aiProblem || submission.resolved ? (
-                                  <Button variant="greenOutline" size="sm">
-                                    <CheckCheck className="h-4 w-4 cursor-pointer" />
-                                  </Button>
-                                ) : (
+                                {submission.problems?.some(p => !p.resolved) ? (
                                   <Button variant="destructiveOutline" size="sm">
                                     <BadgeAlert className="h-4 w-4 cursor-pointer" />
+                                  </Button>
+                                ) : (
+                                  <Button variant="greenOutline" size="sm">
+                                    <CheckCheck className="h-4 w-4 cursor-pointer" />
                                   </Button>
                                 )}
                               </TooltipTrigger>
                             </DialogTrigger>
                             <TooltipContent side="top" align="center">
-                              {!submission.aiProblem ? "No problem detected" : submission.resolved ? "Problem Resolved" : submission.aiProblem}
+                              {(submission.problems?.length ?? 0) === 0
+                                ? "No problem detected"
+                                : submission.problems?.some(p => !p.resolved)
+                                  ? submission.problems?.find(p => !p.resolved)?.problem || "Action Required"
+                                  : "Problem Resolved"}
                             </TooltipContent>
                             <DialogContent className="max-w-4xl h-auto max-h-[90vh] flex flex-col overflow-hidden">
                               <DialogHeader className="pb-4 border-b">
@@ -260,16 +217,16 @@ export default function FormAnalytics() {
                                 <p className="text-sm text-muted-foreground">Detailed analysis of AI interactions and suggested improvements.</p>
                               </DialogHeader>
                               <div className="flex-1 overflow-y-auto pr-2 space-y-6 py-4">
-                                <div className={`rounded-lg p-4 border-l-4 ${!submission.aiProblem ? "bg-green-50 border-l-green-400" : submission.resolved ? "bg-blue-50 border-l-blue-400" : "bg-red-50 border-l-red-400"}`}>
+                                <div className={`rounded-lg p-4 border-l-4 ${(submission.problems?.length ?? 0) === 0 ? "bg-green-50 border-l-green-400" : submission.problems?.some(p => !p.resolved) ? "bg-red-50 border-l-red-400" : "bg-blue-50 border-l-blue-400"}`}>
                                   <div className="flex items-center gap-2">
-                                    {!submission.aiProblem ? (
+                                    {(submission.problems?.length ?? 0) === 0 ? (
                                       <CheckCircleIcon className="h-5 w-5 text-green-600" />
-                                    ) : submission.resolved ? (
-                                      <CheckCheck className="h-5 w-5 text-blue-600" />
-                                    ) : (
+                                    ) : submission.problems?.some(p => !p.resolved) ? (
                                       <BadgeAlert className="h-5 w-5 text-red-600" />
+                                    ) : (
+                                      <CheckCheck className="h-5 w-5 text-blue-600" />
                                     )}
-                                    <span className="font-medium text-sm">{!submission.aiProblem ? "No Issues Detected" : submission.resolved ? "Issue Resolved" : "Action Required"}</span>
+                                    <span className="font-medium text-sm">{(submission.problems?.length ?? 0) === 0 ? "No Issues Detected" : submission.problems?.some(p => !p.resolved) ? "Action Required" : "Issue Resolved"}</span>
                                   </div>
                                 </div>
                                 <Card className="shadow-sm border-0 bg-gradient-to-r from-red-50 to-orange-50">
@@ -338,26 +295,11 @@ export default function FormAnalytics() {
                                           ))}
                                         </div>
                                       ) : (
-                                        <p className="text-sm text-gray-700 leading-relaxed first-letter:capitalize">{submission.aiProblem?.trim()?.length ? submission.aiProblem : "No AI issues were flagged for this submission. The user completed the form without requiring AI assistance or encountering any problems."}</p>
+                                        <p className="text-sm text-gray-700 leading-relaxed first-letter:capitalize">No AI issues were flagged for this submission. The user completed the form without requiring AI assistance or encountering any problems.</p>
                                       )}
                                     </div>
                                   </CardContent>
                                 </Card>
-                                {submission.resolved && (
-                                  <Card className="shadow-sm border-0 bg-gradient-to-r from-green-50 to-emerald-50">
-                                    <CardHeader className="pb-3">
-                                      <CardTitle className="text-base font-semibold flex items-center gap-2">
-                                        <CheckCircleIcon className="h-4 w-4 text-green-500" />
-                                        Resolution Details
-                                      </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="pt-0">
-                                      <div className="bg-white rounded-md p-4 border border-green-100">
-                                        <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{submission.resolutionComment?.trim()?.length ? submission.resolutionComment : "This issue has been marked as resolved without additional details."}</p>
-                                      </div>
-                                    </CardContent>
-                                  </Card>
-                                )}
                                 <Card className="shadow-sm border-0 bg-gradient-to-r from-purple-50 to-pink-50">
                                   <CardHeader className="pb-3">
                                     <CardTitle className="text-base font-semibold flex items-center gap-2">
@@ -420,41 +362,6 @@ export default function FormAnalytics() {
                                 <div className="flex items-center justify-between w-full">
                                   <div className="text-xs text-gray-500">Submission ID: {submission.id.slice(0, 8)}...</div>
                                   <div className="flex gap-3">
-                                    {!submission.aiProblem ? (
-                                      <Button variant="outline" disabled>No Action Needed</Button>
-                                    ) : submission.resolved ? (
-                                      <Button variant="destructive" onClick={() => updateSubmissionResolved(submission.id, false)}>
-                                        <CircleX className="h-4 w-4 mr-2" />
-                                        Mark as Unresolved
-                                      </Button>
-                                    ) : (
-                                      <Popover
-                                        open={resolvePopover.submissionId === submission.id && resolvePopover.anchor === "dialog"}
-                                        onOpenChange={(open) => {
-                                          if (!open) {
-                                            setResolvePopover({ submissionId: null, anchor: null });
-                                            setResolutionComment("");
-                                          }
-                                        }}
-                                      >
-                                        <PopoverTrigger asChild>
-                                          <Button className="bg-green-600 hover:bg-green-700" onClick={() => updateSubmissionResolved(submission.id, true, undefined, "dialog")}>Mark as Resolved</Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-96" align="end">
-                                          <div className="space-y-4">
-                                            <div>
-                                              <Label htmlFor={`resolution-${submission.id}`} className="text-sm font-medium">Resolution Details</Label>
-                                              <p className="text-xs text-gray-500 mt-1">Describe how you resolved this issue for future reference</p>
-                                            </div>
-                                            <Textarea id={`resolution-${submission.id}`} value={resolutionComment} onChange={(e) => setResolutionComment(e.target.value)} placeholder="Add details about how you resolved this" rows={4} className="resize-none" />
-                                            <div className="flex justify-end gap-2">
-                                              <Button variant="outline" size="sm" onClick={() => { setResolvePopover({ submissionId: null, anchor: null }); setResolutionComment(""); }}>Cancel</Button>
-                                              <Button size="sm" onClick={() => updateSubmissionResolved(submission.id, true, resolutionComment)} disabled={!resolutionComment.trim().length} className="bg-green-600 hover:bg-green-700">Confirm Resolution</Button>
-                                            </div>
-                                          </div>
-                                        </PopoverContent>
-                                      </Popover>
-                                    )}
                                     <DialogClose asChild>
                                       <Button variant="outline">Close</Button>
                                     </DialogClose>
@@ -468,12 +375,12 @@ export default function FormAnalytics() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        {!submission.aiProblem ? (
+                        {(submission.problems?.length ?? 0) === 0 ? (
                           <Badge variant="outline">No Issues</Badge>
-                        ) : submission.resolved ? (
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Resolved</Badge>
-                        ) : (
+                        ) : submission.problems?.some(p => !p.resolved) ? (
                           <Badge variant="destructive">Action Required</Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Resolved</Badge>
                         )}
                       </div>
                     </TableCell>
