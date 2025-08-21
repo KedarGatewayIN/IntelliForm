@@ -69,13 +69,13 @@ export interface AIConversation {
 }
 
 export interface AIMessage {
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
   timestamp: string;
 }
 
 export interface ValidationRule {
-  type: 'min' | 'max' | 'email' | 'url' | 'pattern';
+  type: "min" | "max" | "email" | "url" | "pattern";
   value: string | number;
   message: string;
 }
@@ -83,26 +83,26 @@ export interface ValidationRule {
 export interface ConditionalLogic {
   showIf: {
     fieldId: string;
-    operator: 'equals' | 'not_equals' | 'contains';
+    operator: "equals" | "not_equals" | "contains";
     value: string;
   };
 }
 
-export type FormFieldType = 
-  | 'text'
-  | 'textarea'
-  | 'email'
-  | 'number'
-  | 'password'
-  | 'url'
-  | 'radio'
-  | 'checkbox'
-  | 'select'
-  | 'date'
-  | 'file'
-  | 'rating'
-  | 'slider'
-  | 'ai_conversation';
+export type FormFieldType =
+  | "text"
+  | "textarea"
+  | "email"
+  | "number"
+  | "password"
+  | "url"
+  | "radio"
+  | "checkbox"
+  | "select"
+  | "date"
+  | "file"
+  | "rating"
+  | "slider"
+  | "ai_conversation";
 
 export interface ApiResponse<T = any> {
   data?: T;
@@ -188,4 +188,5 @@ export interface FormTheme {
 
 // Utility types
 export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
-export type RequireOnly<T, K extends keyof T> = Partial<T> & Required<Pick<T, K>>;
+export type RequireOnly<T, K extends keyof T> = Partial<T> &
+  Required<Pick<T, K>>;

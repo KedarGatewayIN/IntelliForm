@@ -10,7 +10,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import Navbar from "@/components/layout/navbar";
@@ -19,7 +23,12 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
-import { BarChart3, CheckSquare, SquareArrowOutUpRight } from "lucide-react";
+import {
+  BarChart3,
+  CheckCheck,
+  CheckSquare,
+  SquareArrowOutUpRight,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -30,9 +39,19 @@ import {
 import { useTitle } from "@/hooks/use-title";
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover as DatePopover, PopoverContent as DatePopoverContent, PopoverTrigger as DatePopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover as DatePopover,
+  PopoverContent as DatePopoverContent,
+  PopoverTrigger as DatePopoverTrigger,
+} from "@/components/ui/popover";
 
 const TodoPage: React.FC = () => {
   useTitle("Action Items");
@@ -60,7 +79,9 @@ const TodoPage: React.FC = () => {
   });
 
   // Client-side filters for unresolved
-  const [formFilter, setFormFilter] = React.useState<string | undefined>(undefined);
+  const [formFilter, setFormFilter] = React.useState<string | undefined>(
+    undefined,
+  );
   const [searchQuery, setSearchQuery] = React.useState("");
   const [dateFrom, setDateFrom] = React.useState<Date>(() => {
     const d = new Date();
@@ -74,28 +95,70 @@ const TodoPage: React.FC = () => {
     const fromMs = dateFrom ? dateFrom.getTime() : undefined;
     const toMs = dateTo ? dateTo.getTime() : undefined;
     return problems
-      .map(p => ({
+      .map((p) => ({
         ...p,
-        form: p.form.filter(f => {
+        form: p.form.filter((f) => {
           const okForm = formFilter ? f.form_id === formFilter : true;
-          const okSearch = searchQuery ? (p.problem.toLowerCase().includes(searchQuery.toLowerCase()) || f.title.toLowerCase().includes(searchQuery.toLowerCase())) : true;
-          const completedAtMs = f.completed_at ? new Date(f.completed_at).getTime() : undefined;
-          const okDate = (fromMs ? (completedAtMs ? completedAtMs >= fromMs : false) : true) && (toMs ? (completedAtMs ? completedAtMs <= toMs : false) : true);
+          const okSearch = searchQuery
+            ? p.problem.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              f.title.toLowerCase().includes(searchQuery.toLowerCase())
+            : true;
+          const completedAtMs = f.completed_at
+            ? new Date(f.completed_at).getTime()
+            : undefined;
+          const okDate =
+            (fromMs
+              ? completedAtMs
+                ? completedAtMs >= fromMs
+                : false
+              : true) &&
+            (toMs ? (completedAtMs ? completedAtMs <= toMs : false) : true);
           return okForm && okSearch && okDate;
-        })
+        }),
       }))
-      .filter(p => p.form.length > 0);
+      .filter((p) => p.form.length > 0);
   }, [problems, formFilter, searchQuery, dateFrom, dateTo]);
 
   // Resolved list - server-side
   const [resolvedPage, setResolvedPage] = React.useState(1);
-  const [resolvedFormId, setResolvedFormId] = React.useState<string | undefined>(undefined);
+  const [resolvedFormId, setResolvedFormId] = React.useState<
+    string | undefined
+  >(undefined);
   const [resolvedQuery, setResolvedQuery] = React.useState("");
-  const [resolvedFrom, setResolvedFrom] = React.useState<Date | undefined>(undefined);
-  const [resolvedTo, setResolvedTo] = React.useState<Date | undefined>(undefined);
+  const [resolvedFrom, setResolvedFrom] = React.useState<Date | undefined>(
+    undefined,
+  );
+  const [resolvedTo, setResolvedTo] = React.useState<Date | undefined>(
+    undefined,
+  );
 
-  const { data: resolvedData, isLoading: resolvedLoading, refetch: refetchResolved } = useQuery<{ items: Array<{ problem: string; count: number; form: Array<{ form_id: string; title: string | null; submission_id: string; completed_at: string | null; }> }>; total: number; page: number; pageSize: number }>({
-    queryKey: ["/api/problems/resolved", resolvedPage, resolvedFormId, resolvedQuery, resolvedFrom?.toISOString(), resolvedTo?.toISOString()],
+  const {
+    data: resolvedData,
+    isLoading: resolvedLoading,
+    refetch: refetchResolved,
+  } = useQuery<{
+    items: Array<{
+      problem: string;
+      count: number;
+      form: Array<{
+        form_id: string;
+        title: string | null;
+        submission_id: string;
+        completed_at: string | null;
+      }>;
+    }>;
+    total: number;
+    page: number;
+    pageSize: number;
+  }>({
+    queryKey: [
+      "/api/problems/resolved",
+      resolvedPage,
+      resolvedFormId,
+      resolvedQuery,
+      resolvedFrom?.toISOString(),
+      resolvedTo?.toISOString(),
+    ],
     queryFn: async () => {
       const params = new URLSearchParams();
       params.set("page", String(resolvedPage));
@@ -104,10 +167,12 @@ const TodoPage: React.FC = () => {
       if (resolvedQuery) params.set("q", resolvedQuery);
       if (resolvedFrom) params.set("dateFrom", resolvedFrom.toISOString());
       if (resolvedTo) params.set("dateTo", resolvedTo.toISOString());
-      const res = await fetch(`/api/problems/resolved?${params.toString()}`, { credentials: "include" });
+      const res = await fetch(`/api/problems/resolved?${params.toString()}`, {
+        credentials: "include",
+      });
       if (!res.ok) throw new Error("Failed to load resolved problems");
       return res.json();
-    }
+    },
   });
 
   function removeDuplicates<T>(array: T[], key: keyof T): T[] {
@@ -134,29 +199,60 @@ const TodoPage: React.FC = () => {
           <CardContent>
             {/* Unresolved filters */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
-              <Input placeholder="Search problem or form" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-              <Select value={formFilter} onValueChange={(v) => setFormFilter(v)}>
-                <SelectTrigger><SelectValue placeholder="All forms" /></SelectTrigger>
+              <Input
+                placeholder="Search problem or form"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <Select
+                value={formFilter}
+                onValueChange={(v) => setFormFilter(v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All forms" />
+                </SelectTrigger>
                 <SelectContent>
-                  {Array.from(new Map((problems||[]).flatMap(p=>p.form.map(f=>[f.form_id, f.title])))).map(([id, title]) => (
-                    <SelectItem key={id as string} value={id as string}>{title as string}</SelectItem>
+                  {Array.from(
+                    new Map(
+                      (problems || []).flatMap((p) =>
+                        p.form.map((f) => [f.form_id, f.title]),
+                      ),
+                    ),
+                  ).map(([id, title]) => (
+                    <SelectItem key={id as string} value={id as string}>
+                      {title as string}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <DatePopover>
                 <DatePopoverTrigger asChild>
-                  <Button variant="outline">From: {dateFrom ? dateFrom.toLocaleDateString() : "-"}</Button>
+                  <Button variant="outline">
+                    From: {dateFrom ? dateFrom.toLocaleDateString() : "-"}
+                  </Button>
                 </DatePopoverTrigger>
                 <DatePopoverContent align="start" className="p-0">
-                  <Calendar mode="single" selected={dateFrom} onSelect={(d) => d && setDateFrom(d)} initialFocus />
+                  <Calendar
+                    mode="single"
+                    selected={dateFrom}
+                    onSelect={(d) => d && setDateFrom(d)}
+                    initialFocus
+                  />
                 </DatePopoverContent>
               </DatePopover>
               <DatePopover>
                 <DatePopoverTrigger asChild>
-                  <Button variant="outline">To: {dateTo ? dateTo.toLocaleDateString() : "-"}</Button>
+                  <Button variant="outline">
+                    To: {dateTo ? dateTo.toLocaleDateString() : "-"}
+                  </Button>
                 </DatePopoverTrigger>
                 <DatePopoverContent align="start" className="p-0">
-                  <Calendar mode="single" selected={dateTo} onSelect={(d) => setDateTo(d || undefined)} initialFocus />
+                  <Calendar
+                    mode="single"
+                    selected={dateTo}
+                    onSelect={(d) => setDateTo(d || undefined)}
+                    initialFocus
+                  />
                 </DatePopoverContent>
               </DatePopover>
             </div>
@@ -197,14 +293,14 @@ const TodoPage: React.FC = () => {
                                     aria-label={`Open analytics for ${form.title}`}
                                     onClick={() =>
                                       navigate(
-                                        `/forms/${form.form_id}/analytics`
+                                        `/forms/${form.form_id}/analytics`,
                                       )
                                     }
                                   >
                                     {form.title}
                                     <SquareArrowOutUpRight className="h-4 w-4" />
                                   </Button>
-                                )
+                                ),
                               )
                             : "-"}
                         </div>
@@ -284,7 +380,7 @@ const TodoPage: React.FC = () => {
                                 className="flex flex-col items-start gap-0.5 cursor-pointer"
                                 onClick={() =>
                                   navigate(
-                                    `/forms/${form.form_id}/responses/${form.submission_id}`
+                                    `/forms/${form.form_id}/responses/${form.submission_id}`,
                                   )
                                 }
                               >
@@ -292,7 +388,11 @@ const TodoPage: React.FC = () => {
                                   {form.title}
                                 </span>
                                 <span className="text-xs text-muted-foreground truncate">
-                                  {form.completed_at ? new Date(form.completed_at).toLocaleString() : form.submission_id}
+                                  {form.completed_at
+                                    ? new Date(
+                                        form.completed_at,
+                                      ).toLocaleString()
+                                    : form.submission_id}
                                 </span>
                               </DropdownMenuItem>
                             ))}
@@ -300,7 +400,12 @@ const TodoPage: React.FC = () => {
                         </DropdownMenu>
                       </TableCell>
                       <TableCell className="text-right">
-                      <GroupResolveForm problem={item.problem} ids={item.form.map((f) => f.submission_id)} inputId={`group-res-${idx}`} refetch={refetch} />
+                        <GroupResolveForm
+                          problem={item.problem}
+                          ids={item.form.map((f) => f.submission_id)}
+                          inputId={`group-res-${idx}`}
+                          refetch={refetch}
+                        />
                       </TableCell>
                     </TableRow>
                   ))}
@@ -336,35 +441,75 @@ const TodoPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
-              <Input placeholder="Search problems" value={resolvedQuery} onChange={(e) => setResolvedQuery(e.target.value)} />
-              <Select value={resolvedFormId} onValueChange={(v) => setResolvedFormId(v)}>
-                <SelectTrigger><SelectValue placeholder="All forms" /></SelectTrigger>
+              <Input
+                placeholder="Search problems"
+                value={resolvedQuery}
+                onChange={(e) => setResolvedQuery(e.target.value)}
+              />
+              <Select
+                value={resolvedFormId}
+                onValueChange={(v) => setResolvedFormId(v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All forms" />
+                </SelectTrigger>
                 <SelectContent>
-                {/* We don't have global forms list here; keep empty or reuse from unresolved if present */}
-                {Array.from(new Map((problems||[]).flatMap(p=>p.form.map(f=>[f.form_id, f.title])))).map(([id, title]) => (
-                  <SelectItem key={id as string} value={id as string}>{title as string}</SelectItem>
-                ))}
+                  {/* We don't have global forms list here; keep empty or reuse from unresolved if present */}
+                  {Array.from(
+                    new Map(
+                      (problems || []).flatMap((p) =>
+                        p.form.map((f) => [f.form_id, f.title]),
+                      ),
+                    ),
+                  ).map(([id, title]) => (
+                    <SelectItem key={id as string} value={id as string}>
+                      {title as string}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <DatePopover>
                 <DatePopoverTrigger asChild>
-                  <Button variant="outline">From: {resolvedFrom ? resolvedFrom.toLocaleDateString() : '-'}</Button>
+                  <Button variant="outline">
+                    From:{" "}
+                    {resolvedFrom ? resolvedFrom.toLocaleDateString() : "-"}
+                  </Button>
                 </DatePopoverTrigger>
                 <DatePopoverContent align="start" className="p-0">
-                  <Calendar mode="single" selected={resolvedFrom} onSelect={(d) => setResolvedFrom(d || undefined)} initialFocus />
+                  <Calendar
+                    mode="single"
+                    selected={resolvedFrom}
+                    onSelect={(d) => setResolvedFrom(d || undefined)}
+                    initialFocus
+                  />
                 </DatePopoverContent>
               </DatePopover>
               <DatePopover>
                 <DatePopoverTrigger asChild>
-                  <Button variant="outline">To: {resolvedTo ? resolvedTo.toLocaleDateString() : '-'}</Button>
+                  <Button variant="outline">
+                    To: {resolvedTo ? resolvedTo.toLocaleDateString() : "-"}
+                  </Button>
                 </DatePopoverTrigger>
                 <DatePopoverContent align="start" className="p-0">
-                  <Calendar mode="single" selected={resolvedTo} onSelect={(d) => setResolvedTo(d || undefined)} initialFocus />
+                  <Calendar
+                    mode="single"
+                    selected={resolvedTo}
+                    onSelect={(d) => setResolvedTo(d || undefined)}
+                    initialFocus
+                  />
                 </DatePopoverContent>
               </DatePopover>
             </div>
             <div className="flex justify-end mb-3">
-              <Button variant="outline" onClick={() => { setResolvedPage(1); refetchResolved(); }}>Apply Filters</Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setResolvedPage(1);
+                  refetchResolved();
+                }}
+              >
+                Apply Filters
+              </Button>
             </div>
             {resolvedLoading ? (
               <div className="flex items-center justify-center py-8">
@@ -376,18 +521,30 @@ const TodoPage: React.FC = () => {
                   <TableRow>
                     <TableHead>Problem</TableHead>
                     <TableHead>Forms</TableHead>
-                    <TableHead className="text-center">Resolved Count</TableHead>
+                    <TableHead className="text-center">
+                      Resolved Count
+                    </TableHead>
                     <TableHead>Submissions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {resolvedData.items.map((item, idx) => (
                     <TableRow key={idx}>
-                      <TableCell className="capitalize">{item.problem}</TableCell>
+                      <TableCell className="capitalize">
+                        {item.problem}
+                      </TableCell>
                       <TableCell className="font-medium">
                         <div className="flex flex-wrap gap-2">
                           {removeDuplicates(item.form, "form_id").map((f) => (
-                            <Button key={`${f.form_id}-${idx}`} variant="outline" size="sm" className="gap-2" onClick={() => navigate(`/forms/${f.form_id}/analytics`)}>
+                            <Button
+                              key={`${f.form_id}-${idx}`}
+                              variant="outline"
+                              size="sm"
+                              className="gap-2"
+                              onClick={() =>
+                                navigate(`/forms/${f.form_id}/analytics`)
+                              }
+                            >
                               {f.title}
                               <SquareArrowOutUpRight className="h-4 w-4" />
                             </Button>
@@ -395,21 +552,42 @@ const TodoPage: React.FC = () => {
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
-                        <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">{item.count}</Badge>
+                        <Badge
+                          variant="outline"
+                          className="bg-blue-100 text-blue-800 border-blue-200"
+                        >
+                          {item.count}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm" className="gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-2"
+                            >
                               <BarChart3 className="h-4 w-4" />
                               {item.form.length}
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-72">
                             {item.form.map((f) => (
-                              <DropdownMenuItem key={f.submission_id} className="flex flex-col items-start gap-0.5 cursor-pointer" onClick={() => navigate(`/forms/${f.form_id}/responses/${f.submission_id}`)}>
+                              <DropdownMenuItem
+                                key={f.submission_id}
+                                className="flex flex-col items-start gap-0.5 cursor-pointer"
+                                onClick={() =>
+                                  navigate(
+                                    `/forms/${f.form_id}/responses/${f.submission_id}`,
+                                  )
+                                }
+                              >
                                 <span className="font-medium">{f.title}</span>
-                                <span className="text-xs text-muted-foreground truncate">{f.completed_at ? new Date(f.completed_at).toLocaleString() : f.submission_id}</span>
+                                <span className="text-xs text-muted-foreground truncate">
+                                  {f.completed_at
+                                    ? new Date(f.completed_at).toLocaleString()
+                                    : f.submission_id}
+                                </span>
                               </DropdownMenuItem>
                             ))}
                           </DropdownMenuContent>
@@ -420,14 +598,37 @@ const TodoPage: React.FC = () => {
                 </TableBody>
               </Table>
             ) : (
-              <div className="text-center text-sm text-muted-foreground py-10">No resolved problems found.</div>
+              <div className="text-center text-sm text-muted-foreground py-10">
+                No resolved problems found.
+              </div>
             )}
 
             {/* Pagination */}
             <div className="flex items-center justify-end gap-2 mt-4">
-              <Button variant="outline" size="sm" disabled={resolvedPage <= 1} onClick={() => setResolvedPage(p => Math.max(1, p - 1))}>Previous</Button>
-              <span className="text-sm text-muted-foreground">Page {resolvedData?.page ?? resolvedPage}</span>
-              <Button variant="outline" size="sm" disabled={resolvedData ? (resolvedData.page * resolvedData.pageSize >= resolvedData.total) : true} onClick={() => setResolvedPage(p => p + 1)}>Next</Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={resolvedPage <= 1}
+                onClick={() => setResolvedPage((p) => Math.max(1, p - 1))}
+              >
+                Previous
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Page {resolvedData?.page ?? resolvedPage}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={
+                  resolvedData
+                    ? resolvedData.page * resolvedData.pageSize >=
+                      resolvedData.total
+                    : true
+                }
+                onClick={() => setResolvedPage((p) => p + 1)}
+              >
+                Next
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -437,8 +638,18 @@ const TodoPage: React.FC = () => {
 };
 
 export default TodoPage;
- 
-function GroupResolveForm({ problem, ids, inputId, refetch }: { problem: string; ids: string[]; inputId: string, refetch: any }) {
+
+function GroupResolveForm({
+  problem,
+  ids,
+  inputId,
+  refetch,
+}: {
+  problem: string;
+  ids: string[];
+  inputId: string;
+  refetch: any;
+}) {
   const [comment, setComment] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [open, setOpen] = React.useState(false);
@@ -450,10 +661,14 @@ function GroupResolveForm({ problem, ids, inputId, refetch }: { problem: string;
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ problem, submissionIds: ids, resolutionComment: comment.trim() }),
+        body: JSON.stringify({
+          problem,
+          submissionIds: ids,
+          resolutionComment: comment.trim(),
+        }),
       });
       if (!res.ok) throw new Error(await res.text());
-      refetch()
+      refetch();
     } catch (e) {
       setLoading(false);
     }
@@ -462,13 +677,13 @@ function GroupResolveForm({ problem, ids, inputId, refetch }: { problem: string;
   return (
     <Tooltip delayDuration={100}>
       <Popover open={open} onOpenChange={setOpen}>
-        <TooltipTrigger asChild>
-          <PopoverTrigger asChild>
-            <Button variant="default" size="sm" className="gap-2">
-              Resolve Group
+        <PopoverTrigger asChild>
+          <TooltipTrigger asChild>
+            <Button variant="greenOutline" size="sm" className="gap-2">
+              <CheckCheck className="size-4" />
             </Button>
-          </PopoverTrigger>
-        </TooltipTrigger>
+          </TooltipTrigger>
+        </PopoverTrigger>
 
         <PopoverContent className="w-96" align="end">
           <div className="space-y-3">
@@ -493,7 +708,10 @@ function GroupResolveForm({ problem, ids, inputId, refetch }: { problem: string;
               >
                 Cancel
               </Button>
-              <Button disabled={!comment.trim() || loading} onClick={handleConfirm}>
+              <Button
+                disabled={!comment.trim() || loading}
+                onClick={handleConfirm}
+              >
                 Confirm Resolution
               </Button>
             </div>

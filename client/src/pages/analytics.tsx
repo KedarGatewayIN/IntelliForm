@@ -60,9 +60,10 @@ const AnalyticsPage: React.FC = () => {
                   No forms to analyze
                 </h3>
                 <p className="text-gray-500 mb-6 max-w-md">
-                  Create your first form to start collecting responses and view detailed analytics about your form performance.
+                  Create your first form to start collecting responses and view
+                  detailed analytics about your form performance.
                 </p>
-                <Button 
+                <Button
                   onClick={() => navigate("/")}
                   className="bg-primary hover:bg-primary/90"
                 >

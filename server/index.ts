@@ -21,7 +21,7 @@ app.use(
     exposedHeaders: ["Content-Length", "X-Requested-With"],
     preflightContinue: false,
     optionsSuccessStatus: 204,
-  })
+  }),
 );
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
@@ -88,6 +88,6 @@ app.use((req, res, next) => {
     },
     () => {
       log(`serving on port ${port}`);
-    }
+    },
   );
 })();

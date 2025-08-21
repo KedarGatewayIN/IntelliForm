@@ -21,7 +21,15 @@ import AIChatAssistant from "@/components/form-builder/ai-chat-assistant";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Form, FormField } from "@shared/schema";
-import { ArrowLeftIcon, CopyIcon, EyeIcon, SaveIcon, ShareIcon, Trash, SparklesIcon } from "lucide-react";
+import {
+  ArrowLeftIcon,
+  CopyIcon,
+  EyeIcon,
+  SaveIcon,
+  ShareIcon,
+  Trash,
+  SparklesIcon,
+} from "lucide-react";
 import { useTitle } from "@/hooks/use-title";
 
 export default function FormBuilder() {
@@ -48,7 +56,7 @@ export default function FormBuilder() {
     }
   }, [isEditing, params.id]);
 
-  useTitle(isEditing ? (form.title || "Edit Form") : "Create Form");
+  useTitle(isEditing ? form.title || "Edit Form" : "Create Form");
 
   const loadForm = async () => {
     setIsLoading(true);
@@ -73,10 +81,10 @@ export default function FormBuilder() {
     try {
       const url = isEditing ? `/api/forms/${params.id}` : "/api/forms";
       const method = isEditing ? "PUT" : "POST";
-      
+
       const response = await apiRequest(method, url, form);
       const savedForm = await response.json();
-      
+
       setForm(savedForm);
       toast({
         title: "Success",
@@ -100,9 +108,13 @@ export default function FormBuilder() {
   const publishForm = async () => {
     try {
       const updatedForm = { ...form, isPublished: true };
-      const response = await apiRequest("PUT", `/api/forms/${params.id}`, updatedForm);
+      const response = await apiRequest(
+        "PUT",
+        `/api/forms/${params.id}`,
+        updatedForm,
+      );
       const savedForm = await response.json();
-      
+
       setForm(savedForm);
       toast({
         title: "Form Published",
@@ -120,15 +132,20 @@ export default function FormBuilder() {
   const copyEmbedCode = () => {
     const chatbotId = params.id as string;
     if (!chatbotId || chatbotId === "new") {
-      toast({ title: "Save form first", description: "Please save the form to get an ID." });
+      toast({
+        title: "Save form first",
+        description: "Please save the form to get an ID.",
+      });
       return;
     }
     const embedCode = `<script id=\"gateway-chatbot\" chatbotId=\"${chatbotId}\" src=\"https://qqzgjlyqdabrrpeaxoud.supabase.co/storage/v1/object/public/Chatbot/chatbot.js\"></script>`;
     navigator.clipboard.writeText(embedCode);
-    toast({ title: "Embed code copied!", description: "Paste this <script> tag into your website." });
+    toast({
+      title: "Embed code copied!",
+      description: "Paste this <script> tag into your website.",
+    });
   };
 
-  
   const deleteForm = async () => {
     try {
       await apiRequest("DELETE", `/api/forms/${params.id}`);
@@ -150,18 +167,25 @@ export default function FormBuilder() {
     const newField: FormField = {
       id: crypto.randomUUID(),
       type: fieldType as any,
-      label: fieldData?.label || `${fieldType.charAt(0).toUpperCase() + fieldType.slice(1)} Field`,
+      label:
+        fieldData?.label ||
+        `${fieldType.charAt(0).toUpperCase() + fieldType.slice(1)} Field`,
       required: fieldData?.required || false,
       placeholder: fieldData?.placeholder,
-      aiEnabled: fieldType === 'ai_conversation',
-      validation: fieldType === 'email' ? [{
-        type: 'email',
-        message: 'Please enter a valid email address',
-        value: '',
-      }] : [],
-      ...(fieldType === 'matrix' && {
+      aiEnabled: fieldType === "ai_conversation",
+      validation:
+        fieldType === "email"
+          ? [
+              {
+                type: "email",
+                message: "Please enter a valid email address",
+                value: "",
+              },
+            ]
+          : [],
+      ...(fieldType === "matrix" && {
         matrixRows: ["Row 1", "Row 2", "Row 3"],
-        matrixColumns: ["1", "2", "3", "4", "5"]
+        matrixColumns: ["1", "2", "3", "4", "5"],
       }),
       ...((fieldType === "checkbox" ||
         fieldType === "radio" ||
@@ -171,29 +195,30 @@ export default function FormBuilder() {
       ...fieldData, // Spread any additional field data from AI
     };
 
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
       fields: [...(prev.fields || []), newField],
     }));
   };
 
-  const updateField = (fieldId: string, updates: Partial<FormField>) => {    
-    setForm(prev => ({
+  const updateField = (fieldId: string, updates: Partial<FormField>) => {
+    setForm((prev) => ({
       ...prev,
-      fields: prev.fields?.map(field => 
-        field.id === fieldId ? { ...field, ...updates } : field
-      ) || [],
+      fields:
+        prev.fields?.map((field) =>
+          field.id === fieldId ? { ...field, ...updates } : field,
+        ) || [],
     }));
-    
+
     if (selectedField && selectedField.id === fieldId) {
       setSelectedField({ ...selectedField, ...updates });
     }
   };
 
   const deleteField = (fieldId: string) => {
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
-      fields: prev.fields?.filter(field => field.id !== fieldId) || [],
+      fields: prev.fields?.filter((field) => field.id !== fieldId) || [],
     }));
     setSelectedField(null);
   };
@@ -202,8 +227,8 @@ export default function FormBuilder() {
     const fields = [...(form.fields || [])];
     const [removed] = fields.splice(fromIndex, 1);
     fields.splice(toIndex, 0, removed);
-    
-    setForm(prev => ({ ...prev, fields }));
+
+    setForm((prev) => ({ ...prev, fields }));
   };
 
   if (isLoading) {
@@ -222,7 +247,7 @@ export default function FormBuilder() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
+
       <div className="flex h-[100%]">
         {/* Left Sidebar - Form Elements */}
         <ElementSidebar onAddField={addField} />
@@ -243,14 +268,18 @@ export default function FormBuilder() {
               <div>
                 <Input
                   value={form.title}
-                  onChange={(e) => setForm(prev => ({ ...prev, title: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, title: e.target.value }))
+                  }
                   className="text-lg font-semibold border-none p-0 focus:ring-0"
                   placeholder="Form title"
                 />
-                <p className="text-sm text-gray-500">Last saved a few seconds ago</p>
+                <p className="text-sm text-gray-500">
+                  Last saved a few seconds ago
+                </p>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-3">
               <Button
                 variant="outline"
@@ -299,7 +328,7 @@ export default function FormBuilder() {
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
-                    variant='destructiveOutline'
+                    variant="destructiveOutline"
                     size="sm"
                     disabled={!form.fields?.length || !isEditing}
                   >
@@ -311,12 +340,16 @@ export default function FormBuilder() {
                   <AlertDialogHeader>
                     <AlertDialogTitle>Delete this form?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete the form and all of its submissions and AI conversations.
+                      This action cannot be undone. This will permanently delete
+                      the form and all of its submissions and AI conversations.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={deleteForm} className="bg-red-600 hover:bg-red-700">
+                    <AlertDialogAction
+                      onClick={deleteForm}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
                       Confirm Delete
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -343,7 +376,9 @@ export default function FormBuilder() {
           onUpdateField={(updates) => {
             if (selectedField) {
               updateField(selectedField.id, updates);
-              setSelectedField(prev => prev ? { ...prev, ...updates } : null);
+              setSelectedField((prev) =>
+                prev ? { ...prev, ...updates } : null,
+              );
             }
           }}
         />

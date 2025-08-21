@@ -78,7 +78,13 @@ interface Submission {
   completedAt: string;
   timeTaken?: number;
   ipAddress?: string;
-  problems?: { id: string; problem: string; solutions: string[]; resolved: boolean; resolutionComment: string }[];
+  problems?: {
+    id: string;
+    problem: string;
+    solutions: string[];
+    resolved: boolean;
+    resolutionComment: string;
+  }[];
 }
 
 interface UserFormOption {
@@ -106,19 +112,19 @@ function useDebouncedValue<T>(value: T, delayMs = 400): T {
   return debounced;
 }
 
-function SimplePagination({ 
-  page, 
-  pageSize, 
-  total, 
+function SimplePagination({
+  page,
+  pageSize,
+  total,
   onPageChange,
-}: { 
-  page: number; 
-  pageSize: number; 
-  total: number; 
-  onPageChange: (page: number) => void; 
+}: {
+  page: number;
+  pageSize: number;
+  total: number;
+  onPageChange: (page: number) => void;
 }) {
   const totalPages = Math.ceil(total / pageSize);
-  
+
   if (totalPages <= 1) return null;
 
   return (
@@ -161,7 +167,13 @@ const formatDuration = (seconds?: number) => {
   return `${m}m ${s}s`;
 };
 
-function ResolveProblemForm({ submissionId, problemId }: { submissionId: string; problemId: string }) {
+function ResolveProblemForm({
+  submissionId,
+  problemId,
+}: {
+  submissionId: string;
+  problemId: string;
+}) {
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(false);
   return (
@@ -188,12 +200,19 @@ function ResolveProblemForm({ submissionId, problemId }: { submissionId: string;
           onClick={async () => {
             try {
               setLoading(true);
-              const res = await fetch(`/api/submission/${submissionId}/problem`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-                body: JSON.stringify({ problemId, resolved: true, resolutionComment: comment.trim() }),
-              });
+              const res = await fetch(
+                `/api/submission/${submissionId}/problem`,
+                {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  credentials: "include",
+                  body: JSON.stringify({
+                    problemId,
+                    resolved: true,
+                    resolutionComment: comment.trim(),
+                  }),
+                },
+              );
               if (!res.ok) throw new Error(await res.text());
               window.location.reload();
             } catch (e) {
@@ -261,7 +280,7 @@ export default function RecentSubmissionsPage() {
       debouncedIp,
       filters.dateFrom,
       filters.dateTo,
-    ]
+    ],
   );
   const { data, isLoading } = useQuery<SubmissionsResponse>({
     queryKey,
@@ -286,7 +305,7 @@ export default function RecentSubmissionsPage() {
       if (filters.dateTo) params.set("dateTo", filters.dateTo.toISOString());
       const res = await apiRequest(
         "GET",
-        `/api/submissions?${params.toString()}`
+        `/api/submissions?${params.toString()}`,
       );
       if (!res.ok) throw new Error("Failed to fetch submissions");
       return res.json();
@@ -303,7 +322,7 @@ export default function RecentSubmissionsPage() {
     submissionId: string,
     resolved: boolean,
     comment?: string,
-    anchor?: "row" | "dialog"
+    anchor?: "row" | "dialog",
   ) => {
     if (resolved) {
       if (!comment || !comment.trim()) {
@@ -332,14 +351,14 @@ export default function RecentSubmissionsPage() {
                         resolved: true,
                         resolutionComment: comment?.trim(),
                       }
-                    : s
+                    : s,
                 );
               return {
                 ...old,
                 recent: apply(old.recent),
                 others: apply(old.others),
               };
-            }
+            },
           );
           setUser((prev) => {
             if (!prev) return prev;
@@ -373,14 +392,14 @@ export default function RecentSubmissionsPage() {
             if (!old) return old;
             const apply = (arr: Submission[]) =>
               arr.map((s) =>
-                s.id === submissionId ? { ...s, resolved: false } : s
+                s.id === submissionId ? { ...s, resolved: false } : s,
               );
             return {
               ...old,
               recent: apply(old.recent),
               others: apply(old.others),
             };
-          }
+          },
         );
         setUser((prev) => {
           if (!prev) return prev;
@@ -730,7 +749,7 @@ export default function RecentSubmissionsPage() {
                   When users submit responses to your forms, they will appear
                   here for easy access and management.
                 </p>
-                <Button 
+                <Button
                   onClick={() => navigate("/")}
                   className="bg-primary hover:bg-primary/90"
                 >
@@ -774,7 +793,9 @@ export default function RecentSubmissionsPage() {
                                   <Dialog>
                                     <DialogTrigger asChild>
                                       <TooltipTrigger asChild>
-                                        {sub.problems?.some(p => !p.resolved) ? (
+                                        {sub.problems?.some(
+                                          (p) => !p.resolved,
+                                        ) ? (
                                           <Button
                                             variant="destructiveOutline"
                                             size="sm"
@@ -795,8 +816,10 @@ export default function RecentSubmissionsPage() {
                                     <TooltipContent side="top" align="center">
                                       {(sub.problems?.length ?? 0) === 0
                                         ? "No problem detected"
-                                        : sub.problems?.some(p => !p.resolved)
-                                          ? sub.problems?.find(p => !p.resolved)?.problem || "Action Required"
+                                        : sub.problems?.some((p) => !p.resolved)
+                                          ? sub.problems?.find(
+                                              (p) => !p.resolved,
+                                            )?.problem || "Action Required"
                                           : "Problem Resolved"}
                                     </TooltipContent>
 
@@ -813,15 +836,20 @@ export default function RecentSubmissionsPage() {
                                           className={`rounded-lg p-3 border-l-4 ${
                                             (sub.problems?.length ?? 0) === 0
                                               ? "bg-green-50 border-l-green-400"
-                                              : sub.problems?.some(p => !p.resolved)
-                                              ? "bg-red-50 border-l-red-400"
-                                              : "bg-blue-50 border-l-blue-400"
+                                              : sub.problems?.some(
+                                                    (p) => !p.resolved,
+                                                  )
+                                                ? "bg-red-50 border-l-red-400"
+                                                : "bg-blue-50 border-l-blue-400"
                                           }`}
                                         >
                                           <div className="flex items-center gap-2">
-                                            {(sub.problems?.length ?? 0) === 0 ? (
+                                            {(sub.problems?.length ?? 0) ===
+                                            0 ? (
                                               <CheckCircleIcon className="h-5 w-5 text-green-600" />
-                                            ) : sub.problems?.some(p => !p.resolved) ? (
+                                            ) : sub.problems?.some(
+                                                (p) => !p.resolved,
+                                              ) ? (
                                               <BadgeAlert className="h-5 w-5 text-red-600" />
                                             ) : (
                                               <CheckCheck className="h-5 w-5 text-blue-600" />
@@ -829,9 +857,11 @@ export default function RecentSubmissionsPage() {
                                             <span className="font-medium text-sm">
                                               {(sub.problems?.length ?? 0) === 0
                                                 ? "No Issues Detected"
-                                                : sub.problems?.some(p => !p.resolved)
-                                                ? "Action Required"
-                                                : "Issue Resolved"}
+                                                : sub.problems?.some(
+                                                      (p) => !p.resolved,
+                                                    )
+                                                  ? "Action Required"
+                                                  : "Issue Resolved"}
                                             </span>
                                           </div>
                                         </div>
@@ -845,24 +875,39 @@ export default function RecentSubmissionsPage() {
                                           </CardHeader>
                                           <CardContent className="pt-0">
                                             <div className="bg-white rounded-md p-3 border border-red-100 space-y-3">
-                                              {sub.problems && sub.problems.length > 0 ? (
+                                              {sub.problems &&
+                                              sub.problems.length > 0 ? (
                                                 <div className="space-y-2">
                                                   {sub.problems.map((p) => (
-                                                    <div key={p.id} className="flex items-start justify-between gap-3 border-b last:border-b-0 pb-2 last:pb-0">
+                                                    <div
+                                                      key={p.id}
+                                                      className="flex items-start justify-between gap-3 border-b last:border-b-0 pb-2 last:pb-0"
+                                                    >
                                                       <div>
                                                         <p className="text-sm text-gray-800 first-letter:capitalize">
                                                           {p.problem}
                                                         </p>
-                                                        {p.solutions && p.solutions.length > 0 && (
-                                                          <ul className="list-disc pl-5 mt-1 text-xs text-gray-600">
-                                                            {p.solutions.map((s, i) => (
-                                                              <li key={i}>{s}</li>
-                                                            ))}
-                                                          </ul>
-                                                        )}
-                                                        {p.resolved && p.resolutionComment && (
-                                                          <p className="text-xs text-gray-500 mt-1 whitespace-pre-wrap">{p.resolutionComment}</p>
-                                                        )}
+                                                        {p.solutions &&
+                                                          p.solutions.length >
+                                                            0 && (
+                                                            <ul className="list-disc pl-5 mt-1 text-xs text-gray-600">
+                                                              {p.solutions.map(
+                                                                (s, i) => (
+                                                                  <li key={i}>
+                                                                    {s}
+                                                                  </li>
+                                                                ),
+                                                              )}
+                                                            </ul>
+                                                          )}
+                                                        {p.resolved &&
+                                                          p.resolutionComment && (
+                                                            <p className="text-xs text-gray-500 mt-1 whitespace-pre-wrap">
+                                                              {
+                                                                p.resolutionComment
+                                                              }
+                                                            </p>
+                                                          )}
                                                       </div>
                                                       <div className="shrink-0">
                                                         {p.resolved ? (
@@ -870,14 +915,30 @@ export default function RecentSubmissionsPage() {
                                                             variant="destructive"
                                                             size="sm"
                                                             onClick={() =>
-                                                              fetch(`/api/submission/${sub.id}/problem`, {
-                                                                method: "PUT",
-                                                                headers: { "Content-Type": "application/json" },
-                                                                credentials: "include",
-                                                                body: JSON.stringify({ problemId: p.id, resolved: false }),
-                                                              })
+                                                              fetch(
+                                                                `/api/submission/${sub.id}/problem`,
+                                                                {
+                                                                  method: "PUT",
+                                                                  headers: {
+                                                                    "Content-Type":
+                                                                      "application/json",
+                                                                  },
+                                                                  credentials:
+                                                                    "include",
+                                                                  body: JSON.stringify(
+                                                                    {
+                                                                      problemId:
+                                                                        p.id,
+                                                                      resolved: false,
+                                                                    },
+                                                                  ),
+                                                                },
+                                                              )
                                                                 .then((r) => {
-                                                                  if (!r.ok) throw new Error("Failed");
+                                                                  if (!r.ok)
+                                                                    throw new Error(
+                                                                      "Failed",
+                                                                    );
                                                                   window.location.reload();
                                                                 })
                                                                 .catch(() => {})
@@ -887,13 +948,33 @@ export default function RecentSubmissionsPage() {
                                                           </Button>
                                                         ) : (
                                                           <Popover>
-                                                            <PopoverTrigger asChild>
-                                                              <Button size="sm">Resolve</Button>
+                                                            <PopoverTrigger
+                                                              asChild
+                                                            >
+                                                              <Button size="sm">
+                                                                Resolve
+                                                              </Button>
                                                             </PopoverTrigger>
-                                                            <PopoverContent className="w-80" align="end">
+                                                            <PopoverContent
+                                                              className="w-80"
+                                                              align="end"
+                                                            >
                                                               <div className="space-y-3">
-                                                                <Label htmlFor={`res-${sub.id}-${p.id}`} className="text-sm font-medium">Resolution Details</Label>
-                                                                <ResolveProblemForm submissionId={sub.id} problemId={p.id} />
+                                                                <Label
+                                                                  htmlFor={`res-${sub.id}-${p.id}`}
+                                                                  className="text-sm font-medium"
+                                                                >
+                                                                  Resolution
+                                                                  Details
+                                                                </Label>
+                                                                <ResolveProblemForm
+                                                                  submissionId={
+                                                                    sub.id
+                                                                  }
+                                                                  problemId={
+                                                                    p.id
+                                                                  }
+                                                                />
                                                               </div>
                                                             </PopoverContent>
                                                           </Popover>
@@ -904,7 +985,8 @@ export default function RecentSubmissionsPage() {
                                                 </div>
                                               ) : (
                                                 <p className="text-sm text-gray-700 leading-relaxed first-letter:capitalize">
-                                                  No AI issues were flagged for this submission.
+                                                  No AI issues were flagged for
+                                                  this submission.
                                                 </p>
                                               )}
                                             </div>
@@ -920,7 +1002,9 @@ export default function RecentSubmissionsPage() {
                                           </div>
                                           <div className="flex gap-3">
                                             <DialogClose asChild>
-                                              <Button variant="outline">Close</Button>
+                                              <Button variant="outline">
+                                                Close
+                                              </Button>
                                             </DialogClose>
                                           </div>
                                         </div>
@@ -940,7 +1024,7 @@ export default function RecentSubmissionsPage() {
                                         size="icon"
                                         onClick={() =>
                                           navigate(
-                                            `/forms/${sub.formId}/responses/${sub.id}`
+                                            `/forms/${sub.formId}/responses/${sub.id}`,
                                           )
                                         }
                                       >
@@ -959,7 +1043,7 @@ export default function RecentSubmissionsPage() {
                                         size="icon"
                                         onClick={() =>
                                           navigate(
-                                            `/forms/${sub.formId}/analytics`
+                                            `/forms/${sub.formId}/analytics`,
                                           )
                                         }
                                       >
@@ -985,27 +1069,27 @@ export default function RecentSubmissionsPage() {
                     <div className="text-sm font-medium text-muted-foreground">
                       All other submissions
                     </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Form Name</TableHead>
-                      <TableHead>Submitted At</TableHead>
-                      <TableHead>IP Address</TableHead>
-                      <TableHead>Time Taken</TableHead>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Form Name</TableHead>
+                          <TableHead>Submitted At</TableHead>
+                          <TableHead>IP Address</TableHead>
+                          <TableHead>Time Taken</TableHead>
                           <TableHead>Status</TableHead>
-                      <TableHead>Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                          <TableHead>Action</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
                         {data.others.map((sub) => (
-                      <TableRow key={sub.id}>
+                          <TableRow key={sub.id}>
                             <TableCell className="font-bold">
                               {sub.formTitle}
                             </TableCell>
-                        <TableCell>
-                          {new Date(sub.completedAt).toLocaleString()}
-                        </TableCell>
-                        <TableCell>{sub.ipAddress || "-"}</TableCell>
+                            <TableCell>
+                              {new Date(sub.completedAt).toLocaleString()}
+                            </TableCell>
+                            <TableCell>{sub.ipAddress || "-"}</TableCell>
                             <TableCell>
                               {formatDuration(sub.timeTaken)}
                             </TableCell>
@@ -1015,7 +1099,9 @@ export default function RecentSubmissionsPage() {
                                   <Dialog>
                                     <DialogTrigger asChild>
                                       <TooltipTrigger asChild>
-                                        {sub.problems?.some(p => !p.resolved) ? (
+                                        {sub.problems?.some(
+                                          (p) => !p.resolved,
+                                        ) ? (
                                           <Button
                                             variant="destructiveOutline"
                                             size="sm"
@@ -1036,8 +1122,10 @@ export default function RecentSubmissionsPage() {
                                     <TooltipContent side="top" align="center">
                                       {(sub.problems?.length ?? 0) === 0
                                         ? "No problem detected"
-                                        : sub.problems?.some(p => !p.resolved)
-                                          ? sub.problems?.find(p => !p.resolved)?.problem || "Action Required"
+                                        : sub.problems?.some((p) => !p.resolved)
+                                          ? sub.problems?.find(
+                                              (p) => !p.resolved,
+                                            )?.problem || "Action Required"
                                           : "Problem Resolved"}
                                     </TooltipContent>
 
@@ -1054,15 +1142,20 @@ export default function RecentSubmissionsPage() {
                                           className={`rounded-lg p-3 border-l-4 ${
                                             (sub.problems?.length ?? 0) === 0
                                               ? "bg-green-50 border-l-green-400"
-                                              : sub.problems?.some(p => !p.resolved)
-                                              ? "bg-red-50 border-l-red-400"
-                                              : "bg-blue-50 border-l-blue-400"
+                                              : sub.problems?.some(
+                                                    (p) => !p.resolved,
+                                                  )
+                                                ? "bg-red-50 border-l-red-400"
+                                                : "bg-blue-50 border-l-blue-400"
                                           }`}
                                         >
                                           <div className="flex items-center gap-2">
-                                            {(sub.problems?.length ?? 0) === 0 ? (
+                                            {(sub.problems?.length ?? 0) ===
+                                            0 ? (
                                               <CheckCircleIcon className="h-5 w-5 text-green-600" />
-                                            ) : sub.problems?.some(p => !p.resolved) ? (
+                                            ) : sub.problems?.some(
+                                                (p) => !p.resolved,
+                                              ) ? (
                                               <BadgeAlert className="h-5 w-5 text-red-600" />
                                             ) : (
                                               <CheckCheck className="h-5 w-5 text-blue-600" />
@@ -1070,9 +1163,11 @@ export default function RecentSubmissionsPage() {
                                             <span className="font-medium text-sm">
                                               {(sub.problems?.length ?? 0) === 0
                                                 ? "No Issues Detected"
-                                                : sub.problems?.some(p => !p.resolved)
-                                                ? "Action Required"
-                                                : "Issue Resolved"}
+                                                : sub.problems?.some(
+                                                      (p) => !p.resolved,
+                                                    )
+                                                  ? "Action Required"
+                                                  : "Issue Resolved"}
                                             </span>
                                           </div>
                                         </div>
@@ -1086,24 +1181,39 @@ export default function RecentSubmissionsPage() {
                                           </CardHeader>
                                           <CardContent className="pt-0">
                                             <div className="bg-white rounded-md p-3 border border-red-100 space-y-3">
-                                              {sub.problems && sub.problems.length > 0 ? (
+                                              {sub.problems &&
+                                              sub.problems.length > 0 ? (
                                                 <div className="space-y-2">
                                                   {sub.problems.map((p) => (
-                                                    <div key={p.id} className="flex items-start justify-between gap-3 border-b last:border-b-0 pb-2 last:pb-0">
+                                                    <div
+                                                      key={p.id}
+                                                      className="flex items-start justify-between gap-3 border-b last:border-b-0 pb-2 last:pb-0"
+                                                    >
                                                       <div>
                                                         <p className="text-sm text-gray-800 first-letter:capitalize">
                                                           {p.problem}
                                                         </p>
-                                                        {p.solutions && p.solutions.length > 0 && (
-                                                          <ul className="list-disc pl-5 mt-1 text-xs text-gray-600">
-                                                            {p.solutions.map((s, i) => (
-                                                              <li key={i}>{s}</li>
-                                                            ))}
-                                                          </ul>
-                                                        )}
-                                                        {p.resolved && p.resolutionComment && (
-                                                          <p className="text-xs text-gray-500 mt-1 whitespace-pre-wrap">{p.resolutionComment}</p>
-                                                        )}
+                                                        {p.solutions &&
+                                                          p.solutions.length >
+                                                            0 && (
+                                                            <ul className="list-disc pl-5 mt-1 text-xs text-gray-600">
+                                                              {p.solutions.map(
+                                                                (s, i) => (
+                                                                  <li key={i}>
+                                                                    {s}
+                                                                  </li>
+                                                                ),
+                                                              )}
+                                                            </ul>
+                                                          )}
+                                                        {p.resolved &&
+                                                          p.resolutionComment && (
+                                                            <p className="text-xs text-gray-500 mt-1 whitespace-pre-wrap">
+                                                              {
+                                                                p.resolutionComment
+                                                              }
+                                                            </p>
+                                                          )}
                                                       </div>
                                                       <div className="shrink-0">
                                                         {p.resolved ? (
@@ -1111,14 +1221,30 @@ export default function RecentSubmissionsPage() {
                                                             variant="destructive"
                                                             size="sm"
                                                             onClick={() =>
-                                                              fetch(`/api/submission/${sub.id}/problem`, {
-                                                                method: "PUT",
-                                                                headers: { "Content-Type": "application/json" },
-                                                                credentials: "include",
-                                                                body: JSON.stringify({ problemId: p.id, resolved: false }),
-                                                              })
+                                                              fetch(
+                                                                `/api/submission/${sub.id}/problem`,
+                                                                {
+                                                                  method: "PUT",
+                                                                  headers: {
+                                                                    "Content-Type":
+                                                                      "application/json",
+                                                                  },
+                                                                  credentials:
+                                                                    "include",
+                                                                  body: JSON.stringify(
+                                                                    {
+                                                                      problemId:
+                                                                        p.id,
+                                                                      resolved: false,
+                                                                    },
+                                                                  ),
+                                                                },
+                                                              )
                                                                 .then((r) => {
-                                                                  if (!r.ok) throw new Error("Failed");
+                                                                  if (!r.ok)
+                                                                    throw new Error(
+                                                                      "Failed",
+                                                                    );
                                                                   window.location.reload();
                                                                 })
                                                                 .catch(() => {})
@@ -1128,13 +1254,33 @@ export default function RecentSubmissionsPage() {
                                                           </Button>
                                                         ) : (
                                                           <Popover>
-                                                            <PopoverTrigger asChild>
-                                                              <Button size="sm">Resolve</Button>
+                                                            <PopoverTrigger
+                                                              asChild
+                                                            >
+                                                              <Button size="sm">
+                                                                Resolve
+                                                              </Button>
                                                             </PopoverTrigger>
-                                                            <PopoverContent className="w-80" align="end">
+                                                            <PopoverContent
+                                                              className="w-80"
+                                                              align="end"
+                                                            >
                                                               <div className="space-y-3">
-                                                                <Label htmlFor={`res-${sub.id}-${p.id}`} className="text-sm font-medium">Resolution Details</Label>
-                                                                <ResolveProblemForm submissionId={sub.id} problemId={p.id} />
+                                                                <Label
+                                                                  htmlFor={`res-${sub.id}-${p.id}`}
+                                                                  className="text-sm font-medium"
+                                                                >
+                                                                  Resolution
+                                                                  Details
+                                                                </Label>
+                                                                <ResolveProblemForm
+                                                                  submissionId={
+                                                                    sub.id
+                                                                  }
+                                                                  problemId={
+                                                                    p.id
+                                                                  }
+                                                                />
                                                               </div>
                                                             </PopoverContent>
                                                           </Popover>
@@ -1145,7 +1291,8 @@ export default function RecentSubmissionsPage() {
                                                 </div>
                                               ) : (
                                                 <p className="text-sm text-gray-700 leading-relaxed first-letter:capitalize">
-                                                  No AI issues were flagged for this submission.
+                                                  No AI issues were flagged for
+                                                  this submission.
                                                 </p>
                                               )}
                                             </div>
@@ -1161,7 +1308,9 @@ export default function RecentSubmissionsPage() {
                                           </div>
                                           <div className="flex gap-3">
                                             <DialogClose asChild>
-                                              <Button variant="outline">Close</Button>
+                                              <Button variant="outline">
+                                                Close
+                                              </Button>
                                             </DialogClose>
                                           </div>
                                         </div>
@@ -1171,61 +1320,61 @@ export default function RecentSubmissionsPage() {
                                 </Tooltip>
                               </TooltipProvider>
                             </TableCell>
-                        <TableCell>
-                          <TooltipProvider>
-                            <div className="flex gap-2">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={() =>
-                                      navigate(
-                                        `/forms/${sub.formId}/responses/${sub.id}`
-                                      )
-                                    }
-                                  >
-                                    <FileText className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent side="top">
-                                  View Submission
-                                </TooltipContent>
-                              </Tooltip>
-
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={() =>
+                            <TableCell>
+                              <TooltipProvider>
+                                <div className="flex gap-2">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={() =>
                                           navigate(
-                                            `/forms/${sub.formId}/analytics`
+                                            `/forms/${sub.formId}/responses/${sub.id}`,
                                           )
-                                    }
-                                  >
-                                    <BarChart3 className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent side="top">
-                                  View Analytics
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
-                          </TooltipProvider>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                <div className="mt-4">
-                  <SimplePagination
-                    page={data?.page || 1}
+                                        }
+                                      >
+                                        <FileText className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">
+                                      View Submission
+                                    </TooltipContent>
+                                  </Tooltip>
+
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={() =>
+                                          navigate(
+                                            `/forms/${sub.formId}/analytics`,
+                                          )
+                                        }
+                                      >
+                                        <BarChart3 className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">
+                                      View Analytics
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </div>
+                              </TooltipProvider>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    <div className="mt-4">
+                      <SimplePagination
+                        page={data?.page || 1}
                         pageSize={data?.pageSize || pageSize}
                         total={data?.othersTotal || 0}
-                    onPageChange={setPage}
-                  />
-                </div>
+                        onPageChange={setPage}
+                      />
+                    </div>
                   </div>
                 )}
               </>

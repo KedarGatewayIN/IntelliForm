@@ -14,11 +14,13 @@ declare global {
 export function auth(req: Request, res: Response, next: NextFunction) {
   try {
     const token = req.cookies["auth-token"];
-    
+
     if (!token) {
-      return res.status(401).json({ message: "Access denied. No token provided." });
+      return res
+        .status(401)
+        .json({ message: "Access denied. No token provided." });
     }
-    
+
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
     req.userId = decoded.userId;
     next();

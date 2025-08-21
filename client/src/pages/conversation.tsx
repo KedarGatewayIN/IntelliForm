@@ -50,7 +50,7 @@ interface IAiConversation {
 // Helper function to validate a field's value
 const validateField = (
   field: FormField,
-  response: any
+  response: any,
 ): { valid: boolean; value?: any; message?: string } => {
   let value: any = response;
 
@@ -99,7 +99,7 @@ const FieldRenderer: React.FC<{
   onSubmit: (value: any) => void;
 }> = ({ field, onSubmit }) => {
   const [localValue, setLocalValue] = useState<any>(
-    field.type === "checkbox" ? [] : ""
+    field.type === "checkbox" ? [] : "",
   );
   const [touched, setTouched] = useState(false);
 
@@ -135,7 +135,7 @@ const FieldRenderer: React.FC<{
               "text-base border-2 transition-all duration-200 focus:border-blue-500",
               validationError
                 ? "border-red-400 focus:border-red-500"
-                : "border-gray-200"
+                : "border-gray-200",
             )}
             required={field.required}
             autoFocus
@@ -171,7 +171,7 @@ const FieldRenderer: React.FC<{
                 "animate-in slide-in-from-left-2",
                 localValue === option
                   ? "border-blue-500 bg-blue-50"
-                  : "border-gray-200"
+                  : "border-gray-200",
               )}
               style={{ animationDelay: `${index * 100}ms` }}
             >
@@ -195,7 +195,7 @@ const FieldRenderer: React.FC<{
                   "animate-in slide-in-from-left-2",
                   localValue.includes(option)
                     ? "border-blue-500 bg-blue-50"
-                    : "border-gray-200"
+                    : "border-gray-200",
                 )}
                 style={{ animationDelay: `${index * 100}ms` }}
               >
@@ -254,7 +254,7 @@ const FieldRenderer: React.FC<{
                   validationError
                     ? "border-red-400"
                     : "border-gray-200 hover:border-blue-300",
-                  !localValue && "text-muted-foreground"
+                  !localValue && "text-muted-foreground",
                 )}
                 onClick={() => setTouched(true)}
               >
@@ -296,7 +296,7 @@ const FieldRenderer: React.FC<{
                   "h-10 w-10 cursor-pointer transition-all duration-200 hover:scale-110",
                   star <= (localValue || 0)
                     ? "text-yellow-400 fill-yellow-400"
-                    : "text-gray-300 hover:text-yellow-200"
+                    : "text-gray-300 hover:text-yellow-200",
                 )}
                 onClick={() => {
                   handleChange(star);
@@ -347,7 +347,7 @@ const FieldRenderer: React.FC<{
             className={cn(
               "border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200",
               "hover:border-blue-400 hover:bg-blue-50/30",
-              validationError ? "border-red-400" : "border-gray-300"
+              validationError ? "border-red-400" : "border-gray-300",
             )}
           >
             <UploadIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -590,7 +590,7 @@ export default function ConversationalForm() {
 
   const getNextField = (
     currentAnswers: Record<string, any>,
-    fields: FormField[]
+    fields: FormField[],
   ): FormField | null => {
     for (const field of fields) {
       if (!currentAnswers.hasOwnProperty(field.id)) {
@@ -609,7 +609,7 @@ export default function ConversationalForm() {
 
   const submitForm = async (
     finalAnswers: Record<string, any>,
-    aiConvo?: IAiConversation[]
+    aiConvo?: IAiConversation[],
   ) => {
     setIsSubmitting(true);
     setShowTyping(true);
@@ -622,7 +622,7 @@ export default function ConversationalForm() {
         {
           data: finalAnswers,
           timeTaken,
-        }
+        },
       );
       const response = await submission.json();
       if (aiConvo?.length) {
@@ -637,7 +637,7 @@ export default function ConversationalForm() {
                 timestamp: msg.timestamp,
               })),
             });
-          })
+          }),
         );
       } else if (aiConversation.length) {
         await Promise.all(
@@ -651,7 +651,7 @@ export default function ConversationalForm() {
                 timestamp: msg.timestamp,
               })),
             });
-          })
+          }),
         );
       }
 
@@ -765,7 +765,7 @@ export default function ConversationalForm() {
             ])
             .map(
               (msg) =>
-                `${msg.role === "user" ? "User" : "Assistant"}: ${msg.content}`
+                `${msg.role === "user" ? "User" : "Assistant"}: ${msg.content}`,
             )
             .join("\n");
 
@@ -897,7 +897,7 @@ export default function ConversationalForm() {
                   key={index}
                   className={cn(
                     "flex items-end space-x-3 animate-in slide-in-from-bottom-2",
-                    msg.role === "user" ? "justify-end" : "justify-start"
+                    msg.role === "user" ? "justify-end" : "justify-start",
                   )}
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
@@ -912,7 +912,7 @@ export default function ConversationalForm() {
                       "max-w-md px-4 py-3 rounded-2xl shadow-sm",
                       msg.role === "user"
                         ? "bg-blue-600 text-white rounded-br-md"
-                        : "bg-white text-gray-900 rounded-bl-md border border-gray-200"
+                        : "bg-white text-gray-900 rounded-bl-md border border-gray-200",
                     )}
                   >
                     <p className="text-sm leading-relaxed whitespace-pre-wrap">

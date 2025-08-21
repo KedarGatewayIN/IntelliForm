@@ -36,12 +36,12 @@ export interface IStorage {
   getUserTodoCount(userId: string): Promise<number>;
 
   // Form methods
-  getUserForms(userId: string): Promise<(
-    Form & {
+  getUserForms(userId: string): Promise<
+    (Form & {
       submissions: Submission[];
       aiConversationCount: number;
-    }
-  )[]>;
+    })[]
+  >;
   getForm(id: string): Promise<Form | undefined>;
   createForm(form: InsertForm): Promise<Form>;
   updateForm(id: string, updates: Partial<Form>): Promise<Form>;
@@ -87,7 +87,9 @@ export interface IStorage {
   }): Promise<number>;
 
   // AI Conversation methods
-  saveAIConversation(conversation: InsertAIConversation): Promise<AIConversation>;
+  saveAIConversation(
+    conversation: InsertAIConversation,
+  ): Promise<AIConversation>;
 
   // Resolved problems (grouped)
   getResolvedProblemsGrouped(options: {
@@ -155,7 +157,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, username));
     return user || undefined;
   }
 
@@ -190,7 +195,10 @@ export class DatabaseStorage implements IStorage {
       aiConversationCount: number;
     })[]
   > {
-    type FormWithAgg = Form & { submissions: Submission[]; aiConversationCount: number };
+    type FormWithAgg = Form & {
+      submissions: Submission[];
+      aiConversationCount: number;
+    };
 
     const sqlText = `
       SELECT
@@ -240,7 +248,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createForm(form: InsertForm): Promise<Form> {
-    const [newForm] = await db.insert(forms).values(form as any).returning();
+    const [newForm] = await db
+      .insert(forms)
+      .values(form as any)
+      .returning();
     return newForm;
   }
 
@@ -257,7 +268,9 @@ export class DatabaseStorage implements IStorage {
     // Delete related data first
     await db
       .delete(aiConversations)
-      .where(sql`submission_id IN (SELECT id FROM submissions WHERE form_id = ${id})`);
+      .where(
+        sql`submission_id IN (SELECT id FROM submissions WHERE form_id = ${id})`,
+      );
 
     await db.delete(submissions).where(eq(submissions.formId, id));
     await db.delete(forms).where(eq(forms.id, id));
@@ -294,21 +307,34 @@ export class DatabaseStorage implements IStorage {
 
         if ("problems" in sentiment && Array.isArray(sentiment.problems)) {
           problems = sentiment.problems
-            .filter((p) => p && typeof p.problem === "string" && p.problem.trim().length > 0)
+            .filter(
+              (p) =>
+                p &&
+                typeof p.problem === "string" &&
+                p.problem.trim().length > 0,
+            )
             .slice(0, 10)
             .map((p) => ({
               id: randomUUID(),
               problem: p.problem.trim(),
-              solutions: Array.isArray(p.solutions) ? p.solutions.slice(0, 3) : [],
+              solutions: Array.isArray(p.solutions)
+                ? p.solutions.slice(0, 3)
+                : [],
               resolved: false,
               resolutionComment: "",
             }));
-        } else if ("reason" in sentiment && typeof sentiment.reason === "string" && sentiment.reason.trim().length > 0) {
+        } else if (
+          "reason" in sentiment &&
+          typeof sentiment.reason === "string" &&
+          sentiment.reason.trim().length > 0
+        ) {
           problems = [
             {
               id: randomUUID(),
               problem: sentiment.reason.trim(),
-              solutions: Array.isArray((sentiment as any).solutions) ? (sentiment as any).solutions!.slice(0, 3) : [],
+              solutions: Array.isArray((sentiment as any).solutions)
+                ? (sentiment as any).solutions!.slice(0, 3)
+                : [],
               resolved: false,
               resolutionComment: "",
             },
@@ -330,7 +356,10 @@ export class DatabaseStorage implements IStorage {
     return newSubmission;
   }
 
-  async updateSubmission(submission_id: string, submission: Partial<InsertSubmission>): Promise<Submission> {
+  async updateSubmission(
+    submission_id: string,
+    submission: Partial<InsertSubmission>,
+  ): Promise<Submission> {
     const [updatedSubmission] = await db
       .update(submissions)
       .set(submission as any)
@@ -358,7 +387,7 @@ export class DatabaseStorage implements IStorage {
           ...submission,
           aiConversations: conversations,
         };
-      })
+      }),
     );
 
     return submissionsWithAI;
@@ -457,22 +486,22 @@ export class DatabaseStorage implements IStorage {
     if (typeof filters.hasAiProblem === "boolean") {
       if (filters.hasAiProblem) {
         where.push(
-          `EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`
+          `EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`,
         );
       } else {
         where.push(
-          `NOT EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`
+          `NOT EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`,
         );
       }
     }
     if (typeof filters.resolved === "boolean") {
       if (filters.resolved) {
         where.push(
-          `NOT EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`
+          `NOT EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`,
         );
       } else {
         where.push(
-          `EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`
+          `EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`,
         );
       }
     }
@@ -495,11 +524,11 @@ export class DatabaseStorage implements IStorage {
     if (typeof filters.hasAiConversation === "boolean") {
       if (filters.hasAiConversation) {
         where.push(
-          `EXISTS (SELECT 1 FROM ai_conversations ac WHERE ac.submission_id = s.id)`
+          `EXISTS (SELECT 1 FROM ai_conversations ac WHERE ac.submission_id = s.id)`,
         );
       } else {
         where.push(
-          `NOT EXISTS (SELECT 1 FROM ai_conversations ac WHERE ac.submission_id = s.id)`
+          `NOT EXISTS (SELECT 1 FROM ai_conversations ac WHERE ac.submission_id = s.id)`,
         );
       }
     }
@@ -522,13 +551,15 @@ export class DatabaseStorage implements IStorage {
         f.title as "formTitle"
       FROM submissions s
       LEFT JOIN forms f ON f.id = s.form_id
-      WHERE ${where.join(' AND ')}
+      WHERE ${where.join(" AND ")}
       ORDER BY s.completed_at DESC
       OFFSET $${offsetIndex}
       LIMIT $${limitIndex}
     `;
 
-    const { rows } = await pool.query<Submission & { formTitle: string | null }>(sqlText, params);
+    const { rows } = await pool.query<
+      Submission & { formTitle: string | null }
+    >(sqlText, params);
     return rows;
   }
 
@@ -573,22 +604,22 @@ export class DatabaseStorage implements IStorage {
     if (typeof filters.hasAiProblem === "boolean") {
       if (filters.hasAiProblem) {
         where.push(
-          `EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`
+          `EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`,
         );
       } else {
         where.push(
-          `NOT EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`
+          `NOT EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`,
         );
       }
     }
     if (typeof filters.resolved === "boolean") {
       if (filters.resolved) {
         where.push(
-          `NOT EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`
+          `NOT EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`,
         );
       } else {
         where.push(
-          `EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`
+          `EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`,
         );
       }
     }
@@ -611,11 +642,11 @@ export class DatabaseStorage implements IStorage {
     if (typeof filters.hasAiConversation === "boolean") {
       if (filters.hasAiConversation) {
         where.push(
-          `EXISTS (SELECT 1 FROM ai_conversations ac WHERE ac.submission_id = s.id)`
+          `EXISTS (SELECT 1 FROM ai_conversations ac WHERE ac.submission_id = s.id)`,
         );
       } else {
         where.push(
-          `NOT EXISTS (SELECT 1 FROM ai_conversations ac WHERE ac.submission_id = s.id)`
+          `NOT EXISTS (SELECT 1 FROM ai_conversations ac WHERE ac.submission_id = s.id)`,
         );
       }
     }
@@ -624,7 +655,7 @@ export class DatabaseStorage implements IStorage {
       SELECT COUNT(*)::int as count
       FROM submissions s
       LEFT JOIN forms f ON f.id = s.form_id
-      WHERE ${where.join(' AND ')}
+      WHERE ${where.join(" AND ")}
     `;
 
     const { rows } = await pool.query<{ count: number }>(countSql, params);
@@ -687,7 +718,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async summarizeProblems() {
-    const rows = await db.select({ id: submissions.id, problems: submissions.problems }).from(submissions);
+    const rows = await db
+      .select({ id: submissions.id, problems: submissions.problems })
+      .from(submissions);
 
     const unresolvedPairs: string[] = [];
     for (const row of rows) {
@@ -718,7 +751,9 @@ export class DatabaseStorage implements IStorage {
       .where(inArray(submissions.id, submissionIds));
 
     const finalData = problems.map((p) => {
-      const matchingForms = submissionWithForms.filter((f) => p.ids.includes(f.submission_id));
+      const matchingForms = submissionWithForms.filter((f) =>
+        p.ids.includes(f.submission_id),
+      );
 
       return {
         ...p,
@@ -737,9 +772,12 @@ export class DatabaseStorage implements IStorage {
   async updateSubmissionProblem(
     submissionId: string,
     problemId: string,
-    updates: { resolved?: boolean; resolutionComment?: string }
+    updates: { resolved?: boolean; resolutionComment?: string },
   ): Promise<Submission> {
-    const [current] = await db.select().from(submissions).where(eq(submissions.id, submissionId));
+    const [current] = await db
+      .select()
+      .from(submissions)
+      .where(eq(submissions.id, submissionId));
     if (!current) {
       throw new Error("Submission not found");
     }
@@ -750,9 +788,11 @@ export class DatabaseStorage implements IStorage {
             ...p,
             resolved: updates.resolved ?? p.resolved,
             resolutionComment:
-              typeof updates.resolutionComment === "string" ? updates.resolutionComment : p.resolutionComment,
+              typeof updates.resolutionComment === "string"
+                ? updates.resolutionComment
+                : p.resolutionComment,
           }
-        : p
+        : p,
     );
 
     return await this.updateSubmission(submissionId, {
@@ -763,9 +803,12 @@ export class DatabaseStorage implements IStorage {
   async resolveGroupedProblem(
     canonicalProblem: string,
     submissionIds: string[],
-    resolutionComment: string
+    resolutionComment: string,
   ): Promise<number> {
-    const rows = await db.select().from(submissions).where(inArray(submissions.id, submissionIds));
+    const rows = await db
+      .select()
+      .from(submissions)
+      .where(inArray(submissions.id, submissionIds));
 
     let updatedCount = 0;
     const norm = (s: string) => s.toLowerCase().trim();
@@ -776,7 +819,8 @@ export class DatabaseStorage implements IStorage {
       let changed = false;
       const next: Problem[] = probs.map((p) => {
         const pp = norm(p.problem);
-        const matches = pp === canon || pp.includes(canon) || canon.includes(pp);
+        const matches =
+          pp === canon || pp.includes(canon) || canon.includes(pp);
         if (!p.resolved && matches) {
           changed = true;
           return { ...p, resolved: true, resolutionComment };
@@ -793,8 +837,13 @@ export class DatabaseStorage implements IStorage {
     return updatedCount;
   }
 
-  async saveAIConversation(conversation: InsertAIConversation): Promise<AIConversation> {
-    const [newConversation] = await db.insert(aiConversations).values(conversation as any).returning();
+  async saveAIConversation(
+    conversation: InsertAIConversation,
+  ): Promise<AIConversation> {
+    const [newConversation] = await db
+      .insert(aiConversations)
+      .values(conversation as any)
+      .returning();
 
     return newConversation;
   }
@@ -808,7 +857,12 @@ export class DatabaseStorage implements IStorage {
     userId: string;
     page?: number;
     pageSize?: number;
-    filters?: { formId?: string; dateFrom?: string; dateTo?: string; query?: string };
+    filters?: {
+      formId?: string;
+      dateFrom?: string;
+      dateTo?: string;
+      query?: string;
+    };
   }): Promise<{
     items: Array<{
       problem: string;
@@ -851,7 +905,7 @@ export class DatabaseStorage implements IStorage {
       SELECT s.id, s.form_id as form_id, s.completed_at as completed_at, s.problems, f.title
       FROM submissions s
       JOIN forms f ON f.id = s.form_id
-      WHERE ${where.join(' AND ')}
+      WHERE ${where.join(" AND ")}
       ORDER BY s.completed_at DESC
     `;
 
@@ -974,7 +1028,10 @@ export class DatabaseStorage implements IStorage {
     `;
 
     const [formsRes, submissionsRes, aiRes] = await Promise.all([
-      pool.query<{ id: string; title: string; description: string | null }>(formsSql, [userId, like, limitPerType]),
+      pool.query<{ id: string; title: string; description: string | null }>(
+        formsSql,
+        [userId, like, limitPerType],
+      ),
       pool.query<{
         id: string;
         formId: string;

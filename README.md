@@ -13,6 +13,7 @@ Preferred communication style: Simple, everyday language.
 ## System Architecture
 
 ### Frontend Architecture
+
 The client-side application is built with React and TypeScript, utilizing a modern component-based architecture:
 
 - **UI Framework**: React with TypeScript for type safety and developer experience
@@ -25,6 +26,7 @@ The client-side application is built with React and TypeScript, utilizing a mode
 The application follows a feature-based folder structure with reusable UI components, custom hooks, and page-level components. The form builder uses a canvas-based approach with drag-and-drop functionality for creating forms.
 
 ### Backend Architecture
+
 The server-side is built with Express.js and follows a clean architecture pattern:
 
 - **Web Framework**: Express.js with TypeScript for API endpoints
@@ -36,6 +38,7 @@ The server-side is built with Express.js and follows a clean architecture patter
 The backend implements a service-oriented architecture with separate modules for storage, authentication, and AI services.
 
 ### Database Design
+
 PostgreSQL database with Drizzle ORM provides robust data persistence:
 
 - **Users Table**: Stores user authentication and profile information
@@ -46,6 +49,7 @@ PostgreSQL database with Drizzle ORM provides robust data persistence:
 The schema uses UUID primary keys and includes proper relationships between entities. JSON fields store complex form configurations and conversation data.
 
 ### Authentication System
+
 JWT-based authentication provides secure user sessions:
 
 - **Registration/Login**: Password hashing with bcrypt
@@ -54,6 +58,7 @@ JWT-based authentication provides secure user sessions:
 - **User Context**: React context for client-side authentication state
 
 ### Form Builder Engine
+
 The core form building functionality supports comprehensive form creation:
 
 - **Drag-and-Drop Interface**: Visual form builder with element sidebar
@@ -63,6 +68,7 @@ The core form building functionality supports comprehensive form creation:
 - **Real-time Preview**: Live preview of forms during creation
 
 ### Stepper Interface
+
 The unique user experience feature that differentiates IntelliForm:
 
 - **One-Question-at-a-Time**: Progressive disclosure of form fields
@@ -71,6 +77,7 @@ The unique user experience feature that differentiates IntelliForm:
 - **Response Persistence**: Auto-saving of responses during completion
 
 ### Form Rendering System
+
 Dynamic form rendering supports various field types:
 
 - **Basic Inputs**: Text, email, number, textarea with validation
@@ -81,30 +88,36 @@ Dynamic form rendering supports various field types:
 ## External Dependencies
 
 ### Database Services
+
 - **Neon Database**: PostgreSQL hosting service accessed via `@neondatabase/serverless`
 - **Connection Pooling**: WebSocket-based connection pooling for serverless environments
 
 ### AI Services
+
 - **Groq API**: Large language model service via `@langchain/groq` for conversational AI
 - **LangChain Integration**: Structured AI interactions with conversation management
 
 ### UI Component Libraries
+
 - **Radix UI**: Headless UI primitives for accessibility and functionality
 - **Lucide React**: Icon library for consistent iconography
 - **shadcn/ui**: Pre-built component library based on Radix UI and Tailwind CSS
 
 ### Development Tools
+
 - **TypeScript**: Type safety across the entire application
 - **Drizzle Kit**: Database migration and schema management
 - **Vite**: Development server and build tool with hot module replacement
 - **TanStack Query**: Server state management with caching and synchronization
 
 ### Authentication & Security
+
 - **bcryptjs**: Password hashing for secure user authentication
 - **jsonwebtoken**: JWT token generation and verification
 - **cookie-parser**: HTTP cookie parsing for session management
 
 ### Form Management
+
 - **React Hook Form**: Client-side form state management
 - **Zod**: Runtime type validation and schema definition
 - **date-fns**: Date manipulation and formatting utilities

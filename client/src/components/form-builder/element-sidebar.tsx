@@ -1,6 +1,20 @@
 import { Input } from "@/components/ui/input";
 import { useMemo, useState } from "react";
-import { SearchIcon, TypeIcon, AlignLeftIcon, MailIcon, HashIcon, CircleDotIcon, CheckSquareIcon, ChevronDownIcon, CalendarIcon, StarIcon, UploadIcon, BotIcon, TableIcon } from "lucide-react";
+import {
+  SearchIcon,
+  TypeIcon,
+  AlignLeftIcon,
+  MailIcon,
+  HashIcon,
+  CircleDotIcon,
+  CheckSquareIcon,
+  ChevronDownIcon,
+  CalendarIcon,
+  StarIcon,
+  UploadIcon,
+  BotIcon,
+  TableIcon,
+} from "lucide-react";
 
 interface ElementSidebarProps {
   onAddField: (fieldType: string) => void;
@@ -25,15 +39,15 @@ const formElements: ElementCategory[] = [
       { type: "text", label: "Input", icon: TypeIcon },
       { type: "textarea", label: "Text Area", icon: AlignLeftIcon },
       { type: "email", label: "Email", icon: MailIcon },
-    ]
+    ],
   },
   {
-    category: "Choice Elements", 
+    category: "Choice Elements",
     items: [
       { type: "radio", label: "Multiple Choice", icon: CircleDotIcon },
       { type: "checkbox", label: "Checkboxes", icon: CheckSquareIcon },
       { type: "select", label: "Dropdown", icon: ChevronDownIcon },
-    ]
+    ],
   },
   {
     category: "Advanced Elements",
@@ -41,8 +55,8 @@ const formElements: ElementCategory[] = [
       { type: "matrix", label: "Matrix/Table", icon: TableIcon },
       { type: "date", label: "Date Picker", icon: CalendarIcon },
       { type: "rating", label: "Rating Scale", icon: StarIcon },
-    ]
-  }
+    ],
+  },
 ];
 
 export default function ElementSidebar({ onAddField }: ElementSidebarProps) {
@@ -54,8 +68,10 @@ export default function ElementSidebar({ onAddField }: ElementSidebarProps) {
     return formElements
       .map((category) => ({
         ...category,
-        items: category.items.filter((item) =>
-          item.label.toLowerCase().includes(q) || item.type.toLowerCase().includes(q)
+        items: category.items.filter(
+          (item) =>
+            item.label.toLowerCase().includes(q) ||
+            item.type.toLowerCase().includes(q),
         ),
       }))
       .filter((category) => category.items.length > 0);
@@ -82,7 +98,7 @@ export default function ElementSidebar({ onAddField }: ElementSidebarProps) {
           />
         </div>
       </div>
-      
+
       <div className="flex-1 overflow-y-auto p-6">
         <div className="space-y-6">
           {filteredElements.length === 0 ? (
@@ -101,16 +117,22 @@ export default function ElementSidebar({ onAddField }: ElementSidebarProps) {
                         key={item.type}
                         onClick={() => onAddField(item.type)}
                         className={`p-3 rounded-lg border cursor-pointer hover:shadow-sm transition-all ${
-                          item.special 
-                            ? 'bg-gradient-to-r from-secondary/10 to-primary/10 border-purple-200 hover:from-secondary/20 hover:to-primary/20'
-                            : 'bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
+                          item.special
+                            ? "bg-gradient-to-r from-secondary/10 to-primary/10 border-purple-200 hover:from-secondary/20 hover:to-primary/20"
+                            : "bg-gray-50 border-gray-200 hover:bg-gray-100 hover:border-gray-300"
                         }`}
                       >
                         <div className="flex items-center">
-                          <Icon className={`h-5 w-5 ${item.special ? 'text-secondary' : 'text-gray-500'}`} />
-                          <span className="ml-3 text-sm font-medium text-gray-700">{item.label}</span>
+                          <Icon
+                            className={`h-5 w-5 ${item.special ? "text-secondary" : "text-gray-500"}`}
+                          />
+                          <span className="ml-3 text-sm font-medium text-gray-700">
+                            {item.label}
+                          </span>
                           {item.special && (
-                            <span className="ml-auto text-xs bg-secondary text-white px-2 py-1 rounded-full">AI</span>
+                            <span className="ml-auto text-xs bg-secondary text-white px-2 py-1 rounded-full">
+                              AI
+                            </span>
                           )}
                         </div>
                       </div>

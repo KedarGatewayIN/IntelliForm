@@ -100,8 +100,8 @@ export default function FormElements({
               field.type === "email"
                 ? "email"
                 : field.type === "number"
-                ? "number"
-                : "text"
+                  ? "number"
+                  : "text"
             }
             disabled
           />
@@ -127,7 +127,7 @@ export default function FormElements({
                   <RadioGroupItem value={option} id={`${field.id}-${index}`} />
                   <Label htmlFor={`${field.id}-${index}`}>{option}</Label>
                 </div>
-              )
+              ),
             )}
           </RadioGroup>
         );
@@ -141,7 +141,7 @@ export default function FormElements({
                   <Checkbox id={`${field.id}-${index}`} disabled />
                   <Label htmlFor={`${field.id}-${index}`}>{option}</Label>
                 </div>
-              )
+              ),
             )}
           </div>
         );
@@ -158,7 +158,7 @@ export default function FormElements({
                   <SelectItem key={index} value={option}>
                     {option}
                   </SelectItem>
-                )
+                ),
               )}
             </SelectContent>
           </Select>
@@ -318,14 +318,15 @@ export default function FormElements({
             />
             <span className="font-medium text-gray-900">{field.label}</span>
             {field.required && <span className="text-red-500">*</span>}
-            {field.aiEnabled && field.type === 'textarea' && (
+            {field.aiEnabled && field.type === "textarea" && (
               <span className="text-xs bg-secondary text-white px-2 py-1 rounded-full">
                 AI
               </span>
             )}
             {field.validation && field.validation.length > 0 && (
               <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                {field.validation.length} validation{field.validation.length > 1 ? 's' : ''}
+                {field.validation.length} validation
+                {field.validation.length > 1 ? "s" : ""}
               </span>
             )}
           </div>

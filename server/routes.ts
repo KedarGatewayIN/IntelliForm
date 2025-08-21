@@ -3,7 +3,12 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { auth } from "./middleware/auth";
 import { aiService } from "./services/ai";
-import { loginSchema, registerSchema, insertFormSchema, insertSubmissionSchema } from "@shared/schema";
+import {
+  loginSchema,
+  registerSchema,
+  insertFormSchema,
+  insertSubmissionSchema,
+} from "@shared/schema";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import type { Form, Submission } from "@shared/schema";
@@ -17,8 +22,8 @@ function generateCSV(form: Form, submissions: Submission[]): string {
   }
 
   // Extract field labels from the form
-  const fieldLabels = form.fields.map(field => field.label);
-  
+  const fieldLabels = form.fields.map((field) => field.label);
+
   // Create CSV header
   const headers = [
     "Submission ID",
@@ -26,26 +31,32 @@ function generateCSV(form: Form, submissions: Submission[]): string {
     "Time Taken (seconds)",
     "IP Address",
     "Problems",
-    ...fieldLabels
+    ...fieldLabels,
   ];
-  
+
   // Create CSV rows
-  const rows = submissions.map(submission => {
-    const problems = Array.isArray((submission as any).problems) ? (submission as any).problems as any[] : [];
+  const rows = submissions.map((submission) => {
+    const problems = Array.isArray((submission as any).problems)
+      ? ((submission as any).problems as any[])
+      : [];
     const problemsSummary = problems.length
-      ? problems.map(p => `${p.resolved ? "[RESOLVED]" : "[OPEN]"} ${p.problem}`).join("; ")
+      ? problems
+          .map((p) => `${p.resolved ? "[RESOLVED]" : "[OPEN]"} ${p.problem}`)
+          .join("; ")
       : "";
 
     const baseData = [
       submission.id,
-      submission.completedAt ? new Date(submission.completedAt).toISOString() : "",
+      submission.completedAt
+        ? new Date(submission.completedAt).toISOString()
+        : "",
       (submission as any).timeTaken || "",
       (submission as any).ipAddress || "",
       problemsSummary,
     ];
-    
+
     // Add form field data
-    const fieldData = form.fields.map(field => {
+    const fieldData = form.fields.map((field) => {
       const value = (submission as any).data[field.id];
       if (value === null || value === undefined) {
         return "";
@@ -55,93 +66,117 @@ function generateCSV(form: Form, submissions: Submission[]): string {
       }
       return String(value);
     });
-    
+
     return [...baseData, ...fieldData];
   });
-  
+
   // Combine headers and rows
   const csvRows = [headers, ...rows];
-  
+
   // Convert to CSV format (handle commas and quotes properly)
-  return csvRows.map(row => 
-    row.map(cell => {
-      const cellStr = String(cell);
-      if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
-        return `"${cellStr.replace(/"/g, '""')}"`;
-      }
-      return cellStr;
-    }).join(',')
-  ).join('\n');
+  return csvRows
+    .map((row) =>
+      row
+        .map((cell) => {
+          const cellStr = String(cell);
+          if (
+            cellStr.includes(",") ||
+            cellStr.includes('"') ||
+            cellStr.includes("\n")
+          ) {
+            return `"${cellStr.replace(/"/g, '""')}"`;
+          }
+          return cellStr;
+        })
+        .join(","),
+    )
+    .join("\n");
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  
   // Auth routes
   app.post("/api/auth/register", async (req, res) => {
     try {
       const { username, email, password } = registerSchema.parse(req.body);
-      
+
       // Check if user exists
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
         return res.status(400).json({ message: "User already exists" });
       }
-      
+
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
-      
+
       // Create user
       const user = await storage.createUser({
         username,
         email,
         password: hashedPassword,
       });
-      
+
       // Generate JWT
-      const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "7d" });
-      
+      const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
+        expiresIn: "7d",
+      });
+
       res.cookie("auth-token", token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
-      
-      res.json({ user: { id: user.id, username: user.username, email: user.email } });
+
+      res.json({
+        user: { id: user.id, username: user.username, email: user.email },
+      });
     } catch (error) {
-      res.status(400).json({ message: error instanceof Error ? error.message : "Registration failed" });
+      res
+        .status(400)
+        .json({
+          message:
+            error instanceof Error ? error.message : "Registration failed",
+        });
     }
   });
 
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { email, password } = loginSchema.parse(req.body);
-      
+
       // Find user
       const user = await storage.getUserByEmail(email);
       if (!user) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
-      
+
       // Verify password
       const isValid = await bcrypt.compare(password, user.password);
       if (!isValid) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
-      
+
       // Generate JWT
-      const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "7d" });
-      
+      const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
+        expiresIn: "7d",
+      });
+
       res.cookie("auth-token", token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
-      
-      res.json({ user: { id: user.id, username: user.username, email: user.email } });
+
+      res.json({
+        user: { id: user.id, username: user.username, email: user.email },
+      });
     } catch (error) {
-      res.status(400).json({ message: error instanceof Error ? error.message : "Login failed" });
+      res
+        .status(400)
+        .json({
+          message: error instanceof Error ? error.message : "Login failed",
+        });
     }
   });
 
@@ -156,7 +191,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-      res.json({ user: { id: user.id, username: user.username, email: user.email, todoCount: await storage.getUserTodoCount(req.userId!) } });
+      res.json({
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          todoCount: await storage.getUserTodoCount(req.userId!),
+        },
+      });
     } catch (error) {
       res.status(500).json({ message: "Failed to get user" });
     }
@@ -178,11 +220,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         userId: req.userId,
       });
-      
+
       const form = await storage.createForm(formData);
       res.json(form);
     } catch (error) {
-      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to create form" });
+      res
+        .status(400)
+        .json({
+          message:
+            error instanceof Error ? error.message : "Failed to create form",
+        });
     }
   });
 
@@ -192,12 +239,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!form) {
         return res.status(404).json({ message: "Form not found" });
       }
-      
+
       // Check ownership
       if (form.userId !== req.userId) {
         return res.status(403).json({ message: "Access denied" });
       }
-      
+
       res.json(form);
     } catch (error) {
       res.status(500).json({ message: "Failed to get form" });
@@ -210,12 +257,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!form) {
         return res.status(404).json({ message: "Form not found" });
       }
-      
+
       // Check ownership
       if (form.userId !== req.userId) {
         return res.status(403).json({ message: "Access denied" });
       }
-      
+
       const updatedForm = await storage.updateForm(req.params.id, {
         id: req.body.id,
         title: req.body.title,
@@ -227,7 +274,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       res.json(updatedForm);
     } catch (error) {
-      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to update form" });
+      res
+        .status(400)
+        .json({
+          message:
+            error instanceof Error ? error.message : "Failed to update form",
+        });
     }
   });
 
@@ -237,12 +289,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!form) {
         return res.status(404).json({ message: "Form not found" });
       }
-      
+
       // Check ownership
       if (form.userId !== req.userId) {
         return res.status(403).json({ message: "Access denied" });
       }
-      
+
       await storage.deleteForm(req.params.id);
       res.json({ message: "Form deleted successfully" });
     } catch (error) {
@@ -257,7 +309,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!form || !form.isPublished) {
         return res.status(404).json({ message: "Form not found" });
       }
-      
+
       // Return form without sensitive data
       const { userId, ...publicForm } = form;
       res.json(publicForm);
@@ -272,18 +324,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!form || !form.isPublished) {
         return res.status(404).json({ message: "Form not found" });
       }
-      
+
       const submissionData = insertSubmissionSchema.parse({
         formId: req.params.id,
         data: req.body.data,
         timeTaken: req.body.timeTaken,
         ipAddress: req.ip,
       });
-      
+
       const submission = await storage.createSubmission(submissionData);
       res.json({ submissionId: submission.id });
     } catch (error) {
-      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to submit form" });
+      res
+        .status(400)
+        .json({
+          message:
+            error instanceof Error ? error.message : "Failed to submit form",
+        });
     }
   });
 
@@ -298,16 +355,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         dateFrom: (req.query.dateFrom as string) || undefined,
         dateTo: (req.query.dateTo as string) || undefined,
         ip: (req.query.ip as string) || undefined,
-        hasAiProblem: typeof req.query.hasAiProblem !== 'undefined' ? String(req.query.hasAiProblem) === 'true' : undefined,
-        resolved: typeof req.query.resolved !== 'undefined' ? String(req.query.resolved) === 'true' : undefined,
-        timeMin: typeof req.query.timeMin !== 'undefined' ? parseInt(req.query.timeMin as string) : undefined,
-        timeMax: typeof req.query.timeMax !== 'undefined' ? parseInt(req.query.timeMax as string) : undefined,
+        hasAiProblem:
+          typeof req.query.hasAiProblem !== "undefined"
+            ? String(req.query.hasAiProblem) === "true"
+            : undefined,
+        resolved:
+          typeof req.query.resolved !== "undefined"
+            ? String(req.query.resolved) === "true"
+            : undefined,
+        timeMin:
+          typeof req.query.timeMin !== "undefined"
+            ? parseInt(req.query.timeMin as string)
+            : undefined,
+        timeMax:
+          typeof req.query.timeMax !== "undefined"
+            ? parseInt(req.query.timeMax as string)
+            : undefined,
         query: (req.query.q as string) || undefined,
         aiQuery: (req.query.aiQuery as string) || undefined,
-        hasAiConversation: typeof req.query.hasAiConversation !== 'undefined' ? String(req.query.hasAiConversation) === 'true' : undefined,
+        hasAiConversation:
+          typeof req.query.hasAiConversation !== "undefined"
+            ? String(req.query.hasAiConversation) === "true"
+            : undefined,
       } as const;
 
-      const total = await storage.countFilteredSubmissions({ userId: req.userId!, filters });
+      const total = await storage.countFilteredSubmissions({
+        userId: req.userId!,
+        filters,
+      });
 
       // Recent submissions (top N by completedAt DESC) with filters
       const recent = await storage.getFilteredSubmissions({
@@ -319,7 +394,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Others: everything after the recent chunk, paginated, with filters
       const othersOffsetBase = Math.max(recentLimit, 0);
-      const othersOffset = othersOffsetBase + (Math.max(page, 1) - 1) * Math.max(pageSize, 1);
+      const othersOffset =
+        othersOffsetBase + (Math.max(page, 1) - 1) * Math.max(pageSize, 1);
       const othersLimit = Math.max(pageSize, 1);
 
       const others =
@@ -355,7 +431,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pageSize = parseInt(req.query.pageSize as string) || 10;
       const offset = (page - 1) * pageSize;
       const total = await storage.countAllSubmissions({ userId: req.userId! });
-      const submissions = await storage.getAllSubmissions({ offset, limit: pageSize, userId: req.userId! });
+      const submissions = await storage.getAllSubmissions({
+        offset,
+        limit: pageSize,
+        userId: req.userId!,
+      });
       res.json({ submissions, total, page, pageSize });
     } catch (error) {
       res.status(500).json({ message: "Failed to get recent submissions" });
@@ -367,12 +447,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!form) {
         return res.status(404).json({ message: "Form not found" });
       }
-      
+
       // Check ownership
       if (form.userId !== req.userId) {
         return res.status(403).json({ message: "Access denied" });
       }
-      
+
       const submissions = await storage.getFormSubmissions(req.params.id);
       res.json(submissions);
     } catch (error) {
@@ -385,7 +465,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!form) {
         return res.status(404).json({ message: "Form not found" });
       }
-      
+
       const submissions = await storage.getFormSubmission(req.params.sid);
       res.json(submissions);
     } catch (error) {
@@ -417,14 +497,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (resolved === true) {
         const comment = (resolutionComment ?? "").trim();
         if (!comment) {
-          return res.status(400).json({ message: "resolutionComment is required when resolving" });
+          return res
+            .status(400)
+            .json({ message: "resolutionComment is required when resolving" });
         }
       }
 
-      const updated = await storage.updateSubmissionProblem(req.params.sid, problemId, {
-        resolved,
-        resolutionComment,
-      });
+      const updated = await storage.updateSubmissionProblem(
+        req.params.sid,
+        problemId,
+        {
+          resolved,
+          resolutionComment,
+        },
+      );
       res.json(updated);
     } catch (error) {
       res.status(500).json({ message: "Failed to update problem" });
@@ -439,13 +525,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         submissionIds: string[];
         resolutionComment: string;
       };
-      if (!problem || !Array.isArray(submissionIds) || submissionIds.length === 0) {
-        return res.status(400).json({ message: "problem and submissionIds are required" });
+      if (
+        !problem ||
+        !Array.isArray(submissionIds) ||
+        submissionIds.length === 0
+      ) {
+        return res
+          .status(400)
+          .json({ message: "problem and submissionIds are required" });
       }
       if (!resolutionComment || !resolutionComment.trim()) {
-        return res.status(400).json({ message: "resolutionComment is required" });
+        return res
+          .status(400)
+          .json({ message: "resolutionComment is required" });
       }
-      const updatedCount = await storage.resolveGroupedProblem(problem, submissionIds, resolutionComment.trim());
+      const updatedCount = await storage.resolveGroupedProblem(
+        problem,
+        submissionIds,
+        resolutionComment.trim(),
+      );
       res.json({ updatedCount });
     } catch (error) {
       res.status(500).json({ message: "Failed to resolve grouped problem" });
@@ -458,12 +556,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!form) {
         return res.status(404).json({ message: "Form not found" });
       }
-      
+
       // Check ownership
       if (form.userId !== req.userId) {
         return res.status(403).json({ message: "Access denied" });
       }
-      
+
       const analytics = await storage.getFormAnalytics(req.params.id);
       res.json(analytics);
     } catch (error) {
@@ -477,22 +575,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!form) {
         return res.status(404).json({ message: "Form not found" });
       }
-      
+
       if (form.userId !== req.userId) {
         return res.status(403).json({ message: "Access denied" });
       }
-      
+
       const submissions = await storage.getFormSubmissions(req.params.id);
-      
+
       if (submissions.length === 0) {
-        return res.status(404).json({ message: "No submissions found for this form" });
+        return res
+          .status(404)
+          .json({ message: "No submissions found for this form" });
       }
 
       const csvContent = generateCSV(form, submissions);
-      
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', `attachment; filename="${form.title}_submissions_${new Date().toISOString().split('T')[0]}.csv"`);
-      
+
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${form.title}_submissions_${new Date().toISOString().split("T")[0]}.csv"`,
+      );
+
       res.send(csvContent);
     } catch (error) {
       res.status(500).json({ message: "Failed to export form data" });
@@ -500,20 +603,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI conversation routes
-  app.get("/api/ai/summarize-problems", async(req, res) => {
+  app.get("/api/ai/summarize-problems", async (req, res) => {
     try {
       const response = await storage.summarizeProblems();
       res.json({ response });
     } catch (error) {
-      res.status(500).json({ message: error instanceof Error ? error.message : "AI service unavailable" });
+      res
+        .status(500)
+        .json({
+          message:
+            error instanceof Error ? error.message : "AI service unavailable",
+        });
     }
-  })
+  });
 
   // Resolved problems - grouped with server-side filters and pagination
   app.get("/api/problems/resolved", auth, async (req, res) => {
     try {
       const page = Math.max(parseInt((req.query.page as string) || "1", 10), 1);
-      const pageSize = Math.max(Math.min(parseInt((req.query.pageSize as string) || "10", 10), 100), 1);
+      const pageSize = Math.max(
+        Math.min(parseInt((req.query.pageSize as string) || "10", 10), 100),
+        1,
+      );
       const filters = {
         formId: (req.query.formId as string) || undefined,
         dateFrom: (req.query.dateFrom as string) || undefined,
@@ -521,7 +632,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         query: (req.query.q as string) || undefined,
       } as const;
 
-      const { items, total, page: p, pageSize: ps } = await storage.getResolvedProblemsGrouped({
+      const {
+        items,
+        total,
+        page: p,
+        pageSize: ps,
+      } = await storage.getResolvedProblemsGrouped({
         userId: req.userId!,
         page,
         pageSize,
@@ -535,31 +651,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/ai/chat", async (req, res) => {
     try {
       const { message, thread } = req.body;
-      
+
       const response = await aiService.chat(message, thread);
-      
+
       res.json({ response });
     } catch (error) {
-      res.status(500).json({ message: error instanceof Error ? error.message : "AI service unavailable" });
+      res
+        .status(500)
+        .json({
+          message:
+            error instanceof Error ? error.message : "AI service unavailable",
+        });
     }
   });
 
   app.post("/api/ai/saveAIConversation", async (req, res) => {
     try {
       const { submissionId, fieldId, messages } = req.body as {
-        submissionId: string,
-        fieldId: string,
+        submissionId: string;
+        fieldId: string;
         messages: {
-          role: 'user' | 'assistant';
+          role: "user" | "assistant";
           content: string;
           timestamp: string;
-        }[],
+        }[];
       };
-      
+
       if (!messages || !fieldId || !submissionId) {
-        return res.status(400).json({ message: "Messages, submissionId and fieldId are required" });
+        return res
+          .status(400)
+          .json({ message: "Messages, submissionId and fieldId are required" });
       }
-      
+
       const response = await storage.saveAIConversation({
         fieldId,
         submissionId,
@@ -569,13 +692,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           timestamp: msg.timestamp,
         })),
       });
-      
+
       res.json({ response });
     } catch (error) {
-      res.status(500).json({ message: error instanceof Error ? error.message : "AI service unavailable" });
+      res
+        .status(500)
+        .json({
+          message:
+            error instanceof Error ? error.message : "AI service unavailable",
+        });
     }
   });
-  
+
   // AI conversation routes
   app.post("/api/ai/summarize", async (req, res) => {
     try {
@@ -583,7 +711,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const response = await aiService.summarize(conversation);
       res.json({ response });
     } catch (error) {
-      res.status(500).json({ message: error instanceof Error ? error.message : "AI service unavailable" });
+      res
+        .status(500)
+        .json({
+          message:
+            error instanceof Error ? error.message : "AI service unavailable",
+        });
     }
   });
 
@@ -591,10 +724,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/ai/form-builder", auth, async (req, res) => {
     try {
       const { message, currentForm, conversationHistory } = req.body;
-      const response = await aiService.buildForm(message, currentForm, conversationHistory || []);
+      const response = await aiService.buildForm(
+        message,
+        currentForm,
+        conversationHistory || [],
+      );
       res.json(response);
     } catch (error) {
-      res.status(500).json({ message: error instanceof Error ? error.message : "AI form builder service unavailable" });
+      res
+        .status(500)
+        .json({
+          message:
+            error instanceof Error
+              ? error.message
+              : "AI form builder service unavailable",
+        });
     }
   });
 

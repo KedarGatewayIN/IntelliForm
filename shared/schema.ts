@@ -1,44 +1,89 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, boolean, integer, timestamp, json, uuid } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  varchar,
+  boolean,
+  integer,
+  timestamp,
+  json,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 export const users = pgTable("users", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
-  createdAt: timestamp("created_at").default(sql`now()`).notNull(),
+  createdAt: timestamp("created_at")
+    .default(sql`now()`)
+    .notNull(),
 });
 
 export const forms = pgTable("forms", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   title: text("title").notNull(),
   description: text("description"),
-  userId: uuid("user_id").notNull().references(() => users.id),
-  fields: json("fields").$type<FormField[]>().notNull().default(sql`'[]'::json`),
-  settings: json("settings").$type<FormSettings>().notNull().default(sql`'{}'::json`),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id),
+  fields: json("fields")
+    .$type<FormField[]>()
+    .notNull()
+    .default(sql`'[]'::json`),
+  settings: json("settings")
+    .$type<FormSettings>()
+    .notNull()
+    .default(sql`'{}'::json`),
   isPublished: boolean("is_published").notNull().default(false),
-  createdAt: timestamp("created_at").default(sql`now()`).notNull(),
-  updatedAt: timestamp("updated_at").default(sql`now()`).notNull(),
+  createdAt: timestamp("created_at")
+    .default(sql`now()`)
+    .notNull(),
+  updatedAt: timestamp("updated_at")
+    .default(sql`now()`)
+    .notNull(),
 });
 
 export const submissions = pgTable("submissions", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  formId: uuid("form_id").notNull().references(() => forms.id),
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  formId: uuid("form_id")
+    .notNull()
+    .references(() => forms.id),
   data: json("data").$type<Record<string, any>>().notNull(),
-  completedAt: timestamp("completed_at").default(sql`now()`).notNull(),
+  completedAt: timestamp("completed_at")
+    .default(sql`now()`)
+    .notNull(),
   timeTaken: integer("time_taken"), // in seconds
-  problems: json("problems").$type<Problem[]>().notNull().default(sql`'[]'::json`),
+  problems: json("problems")
+    .$type<Problem[]>()
+    .notNull()
+    .default(sql`'[]'::json`),
   ipAddress: text("ip_address"),
 });
 
 export const aiConversations = pgTable("ai_conversations", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  submissionId: uuid("submission_id").notNull().references(() => submissions.id),
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  submissionId: uuid("submission_id")
+    .notNull()
+    .references(() => submissions.id),
   fieldId: text("field_id").notNull(),
-  messages: json("messages").$type<AIMessage[]>().notNull().default(sql`'[]'::json`),
-  createdAt: timestamp("created_at").default(sql`now()`).notNull(),
+  messages: json("messages")
+    .$type<AIMessage[]>()
+    .notNull()
+    .default(sql`'[]'::json`),
+  createdAt: timestamp("created_at")
+    .default(sql`now()`)
+    .notNull(),
 });
 
 // Relations
@@ -62,12 +107,15 @@ export const submissionsRelations = relations(submissions, ({ one, many }) => ({
   aiConversations: many(aiConversations),
 }));
 
-export const aiConversationsRelations = relations(aiConversations, ({ one }) => ({
-  submission: one(submissions, {
-    fields: [aiConversations.submissionId],
-    references: [submissions.id],
+export const aiConversationsRelations = relations(
+  aiConversations,
+  ({ one }) => ({
+    submission: one(submissions, {
+      fields: [aiConversations.submissionId],
+      references: [submissions.id],
+    }),
   }),
-}));
+);
 
 // Types for form fields and settings
 export interface FormField {
@@ -96,7 +144,7 @@ export interface FormSettings {
 }
 
 export interface AIMessage {
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
   timestamp: string;
 }
@@ -110,7 +158,7 @@ export interface Problem {
 }
 
 export interface ValidationRule {
-  type: 'min' | 'max' | 'email' | 'url' | 'pattern';
+  type: "min" | "max" | "email" | "url" | "pattern";
   value: string | number;
   message: string;
 }
@@ -118,27 +166,27 @@ export interface ValidationRule {
 export interface ConditionalLogic {
   showIf: {
     fieldId: string;
-    operator: 'equals' | 'not_equals' | 'contains';
+    operator: "equals" | "not_equals" | "contains";
     value: string;
   };
 }
 
-export type FormFieldType = 
-  | 'text'
-  | 'textarea'
-  | 'email'
-  | 'number'
-  | 'password'
-  | 'url'
-  | 'radio'
-  | 'checkbox'
-  | 'select'
-  | 'date'
-  | 'file'
-  | 'rating'
-  | 'slider'
-  | 'matrix'
-  | 'ai_conversation';
+export type FormFieldType =
+  | "text"
+  | "textarea"
+  | "email"
+  | "number"
+  | "password"
+  | "url"
+  | "radio"
+  | "checkbox"
+  | "select"
+  | "date"
+  | "file"
+  | "rating"
+  | "slider"
+  | "matrix"
+  | "ai_conversation";
 
 // Zod schemas
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -157,7 +205,9 @@ export const insertSubmissionSchema = createInsertSchema(submissions).omit({
   completedAt: true,
 });
 
-export const insertAIConversationSchema = createInsertSchema(aiConversations).omit({
+export const insertAIConversationSchema = createInsertSchema(
+  aiConversations,
+).omit({
   id: true,
   createdAt: true,
 });

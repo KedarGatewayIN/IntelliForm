@@ -3,10 +3,20 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import type { FormField, ValidationRule } from "@shared/schema";
 import { CalendarIcon, StarIcon, UploadIcon } from "lucide-react";
@@ -21,7 +31,14 @@ interface QuestionRendererProps {
   nextStep?: () => void;
 }
 
-export default function QuestionRenderer({ autofocus, field, value, onChange, previousStep, nextStep }: QuestionRendererProps) {
+export default function QuestionRenderer({
+  autofocus,
+  field,
+  value,
+  onChange,
+  previousStep,
+  nextStep,
+}: QuestionRendererProps) {
   const [touched, setTouched] = useState(false);
 
   // Reset touched state when field changes (e.g., navigating to a new question)
@@ -41,7 +58,10 @@ export default function QuestionRenderer({ autofocus, field, value, onChange, pr
     }
 
     // Skip validation if no value is provided and field is not required
-    if (!field.required && (value === undefined || value === null || value === "")) {
+    if (
+      !field.required &&
+      (value === undefined || value === null || value === "")
+    ) {
       return null;
     }
 
@@ -50,24 +70,48 @@ export default function QuestionRenderer({ autofocus, field, value, onChange, pr
       for (const rule of field.validation) {
         switch (rule.type) {
           case "min":
-            if (field.type === "number" && (isNaN(value) || Number(value) < Number(rule.value))) {
+            if (
+              field.type === "number" &&
+              (isNaN(value) || Number(value) < Number(rule.value))
+            ) {
               return rule.message;
             }
-            if ((field.type === "text" || field.type === "textarea" || field.type === "email") && value.length < Number(rule.value)) {
+            if (
+              (field.type === "text" ||
+                field.type === "textarea" ||
+                field.type === "email") &&
+              value.length < Number(rule.value)
+            ) {
               return rule.message;
             }
-            if ((field.type === "checkbox" || field.type === "select") && Array.isArray(value) && value.length < Number(rule.value)) {
+            if (
+              (field.type === "checkbox" || field.type === "select") &&
+              Array.isArray(value) &&
+              value.length < Number(rule.value)
+            ) {
               return rule.message;
             }
             break;
           case "max":
-            if (field.type === "number" && (isNaN(value) || Number(value) > Number(rule.value))) {
+            if (
+              field.type === "number" &&
+              (isNaN(value) || Number(value) > Number(rule.value))
+            ) {
               return rule.message;
             }
-            if ((field.type === "text" || field.type === "textarea" || field.type === "email") && value.length > Number(rule.value)) {
+            if (
+              (field.type === "text" ||
+                field.type === "textarea" ||
+                field.type === "email") &&
+              value.length > Number(rule.value)
+            ) {
               return rule.message;
             }
-            if ((field.type === "checkbox" || field.type === "select") && Array.isArray(value) && value.length > Number(rule.value)) {
+            if (
+              (field.type === "checkbox" || field.type === "select") &&
+              Array.isArray(value) &&
+              value.length > Number(rule.value)
+            ) {
               return rule.message;
             }
             break;
@@ -81,14 +125,20 @@ export default function QuestionRenderer({ autofocus, field, value, onChange, pr
             break;
           case "url":
             if ((field.type === "text" || field.type === "textarea") && value) {
-              const urlRegex = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/;
+              const urlRegex =
+                /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/;
               if (!urlRegex.test(value)) {
                 return rule.message;
               }
             }
             break;
           case "pattern":
-            if ((field.type === "text" || field.type === "textarea" || field.type === "email") && value) {
+            if (
+              (field.type === "text" ||
+                field.type === "textarea" ||
+                field.type === "email") &&
+              value
+            ) {
               const regex = new RegExp(rule.value as string);
               if (!regex.test(value)) {
                 return rule.message;
@@ -112,20 +162,34 @@ export default function QuestionRenderer({ autofocus, field, value, onChange, pr
         return (
           <div>
             <Input
-              type={field.type === "email" ? "email" : field.type === "number" ? "number" : "text"}
+              type={
+                field.type === "email"
+                  ? "email"
+                  : field.type === "number"
+                    ? "number"
+                    : "text"
+              }
               value={value || ""}
               onChange={(e) => {
                 onChange(e.target.value);
                 setTouched(true);
               }}
               onBlur={() => setTouched(true)}
-              placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
+              placeholder={
+                field.placeholder || `Enter ${field.label.toLowerCase()}`
+              }
               className={`text-lg ${validationError ? "border-red-500" : ""}`}
               required={field.required}
-              maxLength={field.validation?.find((rule) => rule.type === "max")?.value as number | undefined}
+              maxLength={
+                field.validation?.find((rule) => rule.type === "max")?.value as
+                  | number
+                  | undefined
+              }
               autoFocus={autofocus}
             />
-            {validationError && <p className="text-red-500 text-sm mt-1">{validationError}</p>}
+            {validationError && (
+              <p className="text-red-500 text-sm mt-1">{validationError}</p>
+            )}
           </div>
         );
 
@@ -142,13 +206,21 @@ export default function QuestionRenderer({ autofocus, field, value, onChange, pr
                 setTouched(true);
               }}
               onBlur={() => setTouched(true)}
-              placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
+              placeholder={
+                field.placeholder || `Enter ${field.label.toLowerCase()}`
+              }
               className={`text-lg min-h-32 ${validationError ? "border-red-500" : ""}`}
               required={field.required}
-              maxLength={field.validation?.find((rule) => rule.type === "max")?.value as number | undefined}
+              maxLength={
+                field.validation?.find((rule) => rule.type === "max")?.value as
+                  | number
+                  | undefined
+              }
               autoFocus={autofocus}
             />
-            {validationError && <p className="text-red-500 text-sm mt-1">{validationError}</p>}
+            {validationError && (
+              <p className="text-red-500 text-sm mt-1">{validationError}</p>
+            )}
           </div>
         );
 
@@ -171,13 +243,19 @@ export default function QuestionRenderer({ autofocus, field, value, onChange, pr
                     htmlFor={`${field.id}-${index}`}
                     className="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors"
                   >
-                    <RadioGroupItem value={option} id={`${field.id}-${index}`} className="mr-4" />
+                    <RadioGroupItem
+                      value={option}
+                      id={`${field.id}-${index}`}
+                      className="mr-4"
+                    />
                     <span className="text-gray-900">{option}</span>
                   </Label>
                 ))}
               </div>
             </RadioGroup>
-            {validationError && <p className="text-red-500 text-sm mt-1">{validationError}</p>}
+            {validationError && (
+              <p className="text-red-500 text-sm mt-1">{validationError}</p>
+            )}
           </div>
         );
 
@@ -199,7 +277,11 @@ export default function QuestionRenderer({ autofocus, field, value, onChange, pr
                       if (checked) {
                         onChange([...selectedValues, option]);
                       } else {
-                        onChange(selectedValues.filter((val: string) => val !== option));
+                        onChange(
+                          selectedValues.filter(
+                            (val: string) => val !== option,
+                          ),
+                        );
                       }
                       setTouched(true);
                     }}
@@ -209,7 +291,9 @@ export default function QuestionRenderer({ autofocus, field, value, onChange, pr
                 </Label>
               ))}
             </div>
-            {validationError && <p className="text-red-500 text-sm mt-1">{validationError}</p>}
+            {validationError && (
+              <p className="text-red-500 text-sm mt-1">{validationError}</p>
+            )}
           </div>
         );
 
@@ -223,16 +307,22 @@ export default function QuestionRenderer({ autofocus, field, value, onChange, pr
                 setTouched(true);
               }}
             >
-              <SelectTrigger className={`text-lg ${validationError ? "border-red-500" : ""}`}>
+              <SelectTrigger
+                className={`text-lg ${validationError ? "border-red-500" : ""}`}
+              >
                 <SelectValue placeholder="Select an option" />
               </SelectTrigger>
               <SelectContent autoFocus={autofocus}>
                 {(field.options || []).map((option, index) => (
-                  <SelectItem key={index} value={option}>{option}</SelectItem>
+                  <SelectItem key={index} value={option}>
+                    {option}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            {validationError && <p className="text-red-500 text-sm mt-1">{validationError}</p>}
+            {validationError && (
+              <p className="text-red-500 text-sm mt-1">{validationError}</p>
+            )}
           </div>
         );
 
@@ -262,7 +352,9 @@ export default function QuestionRenderer({ autofocus, field, value, onChange, pr
                 />
               </PopoverContent>
             </Popover>
-            {validationError && <p className="text-red-500 text-sm mt-1">{validationError}</p>}
+            {validationError && (
+              <p className="text-red-500 text-sm mt-1">{validationError}</p>
+            )}
           </div>
         );
 
@@ -274,7 +366,9 @@ export default function QuestionRenderer({ autofocus, field, value, onChange, pr
                 <StarIcon
                   key={star}
                   className={`h-8 w-8 cursor-pointer transition-colors ${
-                    star <= (value || 0) ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
+                    star <= (value || 0)
+                      ? "text-yellow-400 fill-yellow-400"
+                      : "text-gray-300"
                   }`}
                   onClick={() => {
                     onChange(star);
@@ -283,7 +377,9 @@ export default function QuestionRenderer({ autofocus, field, value, onChange, pr
                 />
               ))}
             </div>
-            {validationError && <p className="text-red-500 text-sm mt-1">{validationError}</p>}
+            {validationError && (
+              <p className="text-red-500 text-sm mt-1">{validationError}</p>
+            )}
           </div>
         );
 
@@ -296,7 +392,9 @@ export default function QuestionRenderer({ autofocus, field, value, onChange, pr
               }`}
             >
               <UploadIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-lg font-medium text-gray-900 mb-2">Click to upload or drag and drop</p>
+              <p className="text-lg font-medium text-gray-900 mb-2">
+                Click to upload or drag and drop
+              </p>
               <p className="text-gray-500">SVG, PNG, JPG or GIF (max. 10MB)</p>
               <input
                 type="file"
@@ -311,7 +409,9 @@ export default function QuestionRenderer({ autofocus, field, value, onChange, pr
                 onClick={() => setTouched(true)}
               />
             </div>
-            {validationError && <p className="text-red-500 text-sm mt-1">{validationError}</p>}
+            {validationError && (
+              <p className="text-red-500 text-sm mt-1">{validationError}</p>
+            )}
           </div>
         );
 
@@ -327,9 +427,16 @@ export default function QuestionRenderer({ autofocus, field, value, onChange, pr
           {field.label}
           {field.required && <span className="text-red-500 ml-1">*</span>}
         </h2>
-        {field.placeholder && <p className="text-gray-600">{field.placeholder}</p>}
+        {field.placeholder && (
+          <p className="text-gray-600">{field.placeholder}</p>
+        )}
       </div>
-      <form onSubmit={e => {e.preventDefault(); nextStep()}}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          nextStep();
+        }}
+      >
         {renderField()}
       </form>
     </div>
