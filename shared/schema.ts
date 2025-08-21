@@ -29,11 +29,8 @@ export const submissions = pgTable("submissions", {
   data: json("data").$type<Record<string, any>>().notNull(),
   completedAt: timestamp("completed_at").default(sql`now()`).notNull(),
   timeTaken: integer("time_taken"), // in seconds
-  aiProblem: text("ai_problem"),
-  aiSolutions: json("ai_solutions").$type<string[]>().notNull().default(sql`'[]'::json`),
-  resolved: boolean("resolved").notNull().default(false),
+  problems: json("problems").$type<Problem[]>().notNull().default(sql`'[]'::json`),
   ipAddress: text("ip_address"),
-  resolutionComment: text("resolution_comment"),
 });
 
 export const aiConversations = pgTable("ai_conversations", {
@@ -102,6 +99,14 @@ export interface AIMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
+}
+
+export interface Problem {
+  id: string;
+  problem: string;
+  solutions: string[];
+  resolved: boolean;
+  resolutionComment: string;
 }
 
 export interface ValidationRule {

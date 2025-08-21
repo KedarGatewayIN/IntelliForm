@@ -48,11 +48,16 @@ export interface Submission {
   completedAt: string;
   timeTaken?: number;
   ipAddress?: string;
-  resolved?: boolean;
-  aiProblem?: string | null;
-  aiSolutions?: string[];
-  resolutionComment?: string | null;
+  problems?: Problem[];
   aiConversations?: AIConversation[];
+}
+
+export interface Problem {
+  id: string;
+  problem: string;
+  solutions: string[];
+  resolved: boolean;
+  resolutionComment: string;
 }
 
 export interface AIConversation {
