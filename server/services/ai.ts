@@ -366,6 +366,198 @@ class AIService {
       );
     }
   }
+
+  /**
+   * Builds forms through conversation with the user
+   */
+  async buildForm(
+    message: string,
+    currentForm: any,
+    conversationHistory?: any[]
+  ): Promise<{ message: string; formData?: any }> {
+    try {
+      const response = await this.llm.invoke([
+        {
+          role: "system",
+          content: `
+            You are an expert form builder AI assistant. Your role is to help users create forms through natural conversation.
+
+            Core Capabilities:
+            - Create forms based on user descriptions
+            - Add, modify, or remove form fields
+            - Suggest form improvements
+            - Handle various field types: text, email, number, textarea, select, radio, checkbox, date, file, rating, slider
+            - Set up form validation rules
+            - Configure conditional logic
+            - Create professional form titles and descriptions
+
+            Response Format:
+            You must respond with a JSON object containing:
+            {
+              "message": "Your conversational response to the user",
+              "formData": {
+                "title": "Form title",
+                "description": "Form description",
+                "fields": [array of field objects],
+                "settings": {}
+              }
+            }
+
+            Field Object Structure:
+            {
+              "id": "unique-id",
+              "type": "field-type",
+              "label": "Field Label",
+              "placeholder": "Optional placeholder",
+              "required": true/false,
+              "options": ["array", "for", "select/radio/checkbox"],
+              "validation": [{"type": "min/max/email/pattern", "value": "", "message": ""}],
+              "aiEnabled": true/false
+            }
+
+            Conversation Guidelines:
+            1. Be conversational and helpful
+            2. Ask clarifying questions when needed
+            3. Suggest improvements and best practices
+            4. Update the form incrementally based on user requests
+            5. Explain what changes you're making
+
+            Examples of User Requests:
+            - "Create a contact form"
+            - "Add a rating field for satisfaction"
+            - "Make the email field required"
+            - "Add options to the dropdown"
+            - "Remove the phone number field"
+
+            Current Form State: ${JSON.stringify(currentForm)}
+          `,
+        },
+        ...(conversationHistory || []).map((msg: any) => ({
+          role: msg.role === "assistant" ? "assistant" : "user",
+          content: msg.content,
+        })),
+        {
+          role: "user",
+          content: message,
+        },
+      ]);
+
+      let responseText = response.content as string;
+
+      try {
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const jsonResponse = JSON.parse(jsonMatch[0]);
+          return jsonResponse;
+        }
+      } catch (parseError) {
+        // If JSON parsing fails, create a basic response
+      }
+
+      // Fallback: Create a simple form based on the message
+      // if (
+      //   !currentForm.title &&
+      //   (message.toLowerCase().includes("create") ||
+      //     message.toLowerCase().includes("build"))
+      // ) {
+      //   return {
+      //     message:
+      //       "I'll help you create that form! Let me start with a basic structure. What specific fields would you like to include?",
+      //     formData: {
+      //       title: this.extractFormTitle(message),
+      //       description: "Please fill out this form",
+      //       fields: this.generateBasicFields(message),
+      //       settings: {},
+      //     },
+      //   };
+      // }
+
+      return {
+        message:
+          "I understand you want to work on the form. Could you be more specific about what you'd like to add or change?",
+        formData: currentForm,
+      };
+    } catch (error) {
+      console.error("AI form builder error:", error);
+      throw new Error("AI form builder service is currently unavailable");
+    }
+  }
+
+  // private extractFormTitle(message: string): string {
+  //   const lowerMessage = message.toLowerCase();
+  //   if (lowerMessage.includes("contact")) return "Contact Form";
+  //   if (lowerMessage.includes("feedback")) return "Feedback Form";
+  //   if (lowerMessage.includes("survey")) return "Survey Form";
+  //   if (lowerMessage.includes("application")) return "Application Form";
+  //   if (lowerMessage.includes("registration")) return "Registration Form";
+  //   if (lowerMessage.includes("booking")) return "Booking Form";
+  //   if (lowerMessage.includes("order")) return "Order Form";
+  //   return "New Form";
+  // }
+
+  // private generateBasicFields(message: string): any[] {
+  //   const lowerMessage = message.toLowerCase();
+  //   const fields = [];
+
+  //   // Always include name field
+  //   fields.push({
+  //     id: crypto.randomUUID(),
+  //     type: "text",
+  //     label: "Full Name",
+  //     required: true,
+  //     placeholder: "Enter your full name",
+  //   });
+
+  //   // Add email if mentioned or for contact forms
+  //   if (lowerMessage.includes("email") || lowerMessage.includes("contact")) {
+  //     fields.push({
+  //       id: crypto.randomUUID(),
+  //       type: "email",
+  //       label: "Email Address",
+  //       required: true,
+  //       placeholder: "Enter your email address",
+  //       validation: [
+  //         {
+  //           type: "email",
+  //           value: "",
+  //           message: "Please enter a valid email address",
+  //         },
+  //       ],
+  //     });
+  //   }
+
+  //   // Add phone for contact/booking forms
+  //   if (
+  //     lowerMessage.includes("phone") ||
+  //     lowerMessage.includes("contact") ||
+  //     lowerMessage.includes("booking")
+  //   ) {
+  //     fields.push({
+  //       id: crypto.randomUUID(),
+  //       type: "text",
+  //       label: "Phone Number",
+  //       required: false,
+  //       placeholder: "Enter your phone number",
+  //     });
+  //   }
+
+  //   // Add message/comments field
+  //   if (
+  //     lowerMessage.includes("feedback") ||
+  //     lowerMessage.includes("contact") ||
+  //     lowerMessage.includes("message")
+  //   ) {
+  //     fields.push({
+  //       id: crypto.randomUUID(),
+  //       type: "textarea",
+  //       label: lowerMessage.includes("feedback") ? "Your Feedback" : "Message",
+  //       required: true,
+  //       placeholder: "Please share your thoughts...",
+  //     });
+  //   }
+
+  //   return fields;
+  // }
 }
 
 export const aiService = new AIService();

@@ -6,10 +6,11 @@ import Navbar from "@/components/layout/navbar";
 import ElementSidebar from "@/components/form-builder/element-sidebar";
 import FormCanvas from "@/components/form-builder/form-canvas";
 import PropertiesPanel from "@/components/form-builder/properties-panel";
+import AIChatAssistant from "@/components/form-builder/ai-chat-assistant";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Form, FormField } from "@shared/schema";
-import { ArrowLeftIcon, CopyIcon, EyeIcon, SaveIcon, ShareIcon, Trash } from "lucide-react";
+import { ArrowLeftIcon, CopyIcon, EyeIcon, SaveIcon, ShareIcon, Trash, SparklesIcon } from "lucide-react";
 import { useTitle } from "@/hooks/use-title";
 
 export default function FormBuilder() {
@@ -26,6 +27,7 @@ export default function FormBuilder() {
   const [selectedField, setSelectedField] = useState<FormField | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isAIChatOpen, setIsAIChatOpen] = useState(false);
 
   const isEditing = params.id && params.id !== "new";
 
@@ -84,28 +86,21 @@ export default function FormBuilder() {
     }
   };
 
-  const publishForm = async (publish: boolean) => {
+  const publishForm = async () => {
     try {
-      const updatedForm = { ...form, isPublished: publish };
+      const updatedForm = { ...form, isPublished: true };
       const response = await apiRequest("PUT", `/api/forms/${params.id}`, updatedForm);
       const savedForm = await response.json();
       
       setForm(savedForm);
-      if(publish) {
-        toast({
-          title: "Form Published",
-          description: "Your form is now live and accepting responses",
-        });
-      } else {
-        toast({
-          title: "Form Unpublished",
-          description: "Your form is unpublished and no longer accepting responses!",
-        });
-      }
+      toast({
+        title: "Form Published",
+        description: "Your form is now live and accepting responses",
+      });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update publish status!",
+        description: "Failed to publish form",
         variant: "destructive",
       });
     }
@@ -140,12 +135,13 @@ export default function FormBuilder() {
     }
   };
 
-  const addField = (fieldType: string) => {
+  const addField = (fieldType: string, fieldData?: Partial<FormField>) => {
     const newField: FormField = {
       id: crypto.randomUUID(),
       type: fieldType as any,
-      label: `${fieldType.charAt(0).toUpperCase() + fieldType.slice(1)} Field`,
-      required: false,
+      label: fieldData?.label || `${fieldType.charAt(0).toUpperCase() + fieldType.slice(1)} Field`,
+      required: fieldData?.required || false,
+      placeholder: fieldData?.placeholder,
       aiEnabled: fieldType === 'ai_conversation',
       validation: fieldType === 'email' ? [{
         type: 'email',
@@ -159,8 +155,9 @@ export default function FormBuilder() {
       ...((fieldType === "checkbox" ||
         fieldType === "radio" ||
         fieldType === "select") && {
-        options: ["Option 1", "Option 2", "Option 3"],
+        options: fieldData?.options || ["Option 1", "Option 2", "Option 3"],
       }),
+      ...fieldData, // Spread any additional field data from AI
     };
 
     setForm(prev => ({
@@ -247,6 +244,15 @@ export default function FormBuilder() {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={() => setIsAIChatOpen(true)}
+                className="bg-gradient-to-r from-secondary/10 to-primary/10 border-primary/20 hover:from-secondary/20 hover:to-primary/20 transition-all duration-300"
+              >
+                <SparklesIcon className="h-4 w-4 mr-2 text-secondary" />
+                AI Assistant
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={copyEmbedCode}
                 disabled={!isEditing}
               >
@@ -257,7 +263,7 @@ export default function FormBuilder() {
                 variant="outline"
                 size="sm"
                 onClick={() => navigate(`/forms/${params.id}/preview`)}
-                disabled={!form.fields?.length || !isEditing}
+                disabled={!form.fields?.length}
               >
                 <EyeIcon className="h-4 w-4 mr-2" />
                 Preview
@@ -273,12 +279,11 @@ export default function FormBuilder() {
               </Button>
               <Button
                 size="sm"
-                variant={form.isPublished ? "destructiveOutline" : "default"}
-                onClick={() => publishForm(!form.isPublished)}
+                onClick={publishForm}
                 disabled={!form.fields?.length || !isEditing}
               >
                 <ShareIcon className="h-4 w-4 mr-2" />
-                {form.isPublished ? "Unpublish" : "Publish"}
+                Publish
               </Button>
               <Button
                 variant='destructiveOutline'
@@ -315,6 +320,14 @@ export default function FormBuilder() {
           }}
         />
       </div>
+
+      {/* AI Chat Assistant */}
+      <AIChatAssistant
+        form={form}
+        setForm={setForm}
+        isOpen={isAIChatOpen}
+        onToggle={() => setIsAIChatOpen(!isAIChatOpen)}
+      />
     </div>
   );
 }

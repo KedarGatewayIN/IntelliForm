@@ -64,7 +64,13 @@ export default function ElementSidebar({ onAddField }: ElementSidebarProps) {
   return (
     <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
       <div className="p-6 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Form Elements</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Form Elements</h2>
+          <div className="flex items-center space-x-1 text-xs bg-gradient-to-r from-secondary/10 to-primary/10 px-2 py-1 rounded-full">
+            <BotIcon className="h-3 w-3 text-secondary" />
+            <span className="text-secondary font-medium">AI Powered</span>
+          </div>
+        </div>
         <div className="relative">
           <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
