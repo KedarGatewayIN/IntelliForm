@@ -1,5 +1,5 @@
 import { Form } from "@shared/schema";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -19,11 +19,13 @@ import {
 } from "@/components/ui/tooltip";
 import { BarChart3, BarChart } from "lucide-react";
 import { useTitle } from "@/hooks/use-title";
+import { Input } from "@/components/ui/input";
 
 const AnalyticsPage: React.FC = () => {
   useTitle("Analytics");
   const [forms, setForms] = useState<Form[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
   const [, navigate] = useLocation();
 
   useEffect(() => {
@@ -37,21 +39,41 @@ const AnalyticsPage: React.FC = () => {
     getForms();
   }, []);
 
+  const handleSearchChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setSearch(e.target.value);
+    },
+    []
+  );
+
+  const filteredForms = useMemo(() => {
+    return forms.filter((form) =>
+      form.title.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [forms, search]);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-8">
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>All Forms</CardTitle>
+            <Input
+              type="text"
+              placeholder="Search forms..."
+              value={search}
+              onChange={handleSearchChange}
+              className="max-w-xs"
+            />
           </CardHeader>
           <CardContent>
             {loading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
-            ) : forms.length === 0 ? (
+            ) : filteredForms.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                   <BarChart className="h-8 w-8 text-gray-400" />
@@ -79,7 +101,7 @@ const AnalyticsPage: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {forms.map((form) => (
+                  {filteredForms.map((form) => (
                     <TableRow key={form.id} className="hover:bg-gray-50">
                       <TableCell className="font-bold">{form.title}</TableCell>
                       <TableCell>
