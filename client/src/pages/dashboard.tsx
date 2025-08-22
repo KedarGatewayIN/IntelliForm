@@ -291,7 +291,7 @@ export default function Dashboard() {
                     <BarChart3Icon className="h-4 w-4 inline mr-1" />
                     {form.submissions?.length ?? 0} responses
                   </span>
-                  {form.fields.some((field: any) => field.aiEnabled) && (
+                  {form?.fields?.some((field: any) => field?.aiEnabled) && (
                     <span>
                       <BotIcon className="h-4 w-4 inline mr-1 text-secondary" />
                       AI-enabled
