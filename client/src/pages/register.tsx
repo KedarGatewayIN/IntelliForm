@@ -35,7 +35,7 @@ export default function Register() {
     try {
       const response = await apiRequest("POST", "/api/auth/register", data);
       const result = await response.json();
-      
+
       setUser(result.user);
       toast({
         title: "Account created!",
@@ -45,7 +45,8 @@ export default function Register() {
     } catch (error) {
       toast({
         title: "Registration failed",
-        description: error instanceof Error ? error.message : "Something went wrong",
+        description:
+          error instanceof Error ? error.message : "Something went wrong",
         variant: "destructive",
       });
     } finally {
@@ -75,10 +76,12 @@ export default function Register() {
                 className={errors.username ? "border-red-500" : ""}
               />
               {errors.username && (
-                <p className="text-sm text-red-500">{errors.username.message}</p>
+                <p className="text-sm text-red-500">
+                  {errors.username.message}
+                </p>
               )}
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -92,7 +95,7 @@ export default function Register() {
                 <p className="text-sm text-red-500">{errors.email.message}</p>
               )}
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
@@ -103,19 +106,24 @@ export default function Register() {
                 className={errors.password ? "border-red-500" : ""}
               />
               {errors.password && (
-                <p className="text-sm text-red-500">{errors.password.message}</p>
+                <p className="text-sm text-red-500">
+                  {errors.password.message}
+                </p>
               )}
             </div>
-            
+
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Creating account..." : "Create Account"}
             </Button>
           </form>
-          
+
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
               Already have an account?{" "}
-              <Link href="/login" className="text-primary hover:underline font-medium">
+              <Link
+                href="/login"
+                className="text-primary hover:underline font-medium"
+              >
                 Sign in
               </Link>
             </p>

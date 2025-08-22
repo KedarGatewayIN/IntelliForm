@@ -6,12 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import {
-  BotIcon,
-  SendIcon,
-  MinusIcon,
-  MessageCircleIcon,
-} from "lucide-react";
+import { BotIcon, SendIcon, MinusIcon, MessageCircleIcon } from "lucide-react";
 import type { Form } from "@shared/schema";
 
 interface Message {

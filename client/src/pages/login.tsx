@@ -35,7 +35,7 @@ export default function Login() {
     try {
       const response = await apiRequest("POST", "/api/auth/login", data);
       const result = await response.json();
-      
+
       setUser(result.user);
       toast({
         title: "Welcome back!",
@@ -45,7 +45,8 @@ export default function Login() {
     } catch (error) {
       toast({
         title: "Login failed",
-        description: error instanceof Error ? error.message : "Invalid credentials",
+        description:
+          error instanceof Error ? error.message : "Invalid credentials",
         variant: "destructive",
       });
     } finally {
@@ -60,7 +61,9 @@ export default function Login() {
           <div className="w-12 h-12 bg-gradient-to-r from-primary to-secondary rounded-xl flex items-center justify-center mx-auto mb-4">
             <i className="fas fa-magic text-white text-xl"></i>
           </div>
-          <CardTitle className="text-2xl font-bold">Welcome to IntelliForm</CardTitle>
+          <CardTitle className="text-2xl font-bold">
+            Welcome to IntelliForm
+          </CardTitle>
           <p className="text-gray-600">Sign in to your account</p>
         </CardHeader>
         <CardContent>
@@ -78,7 +81,7 @@ export default function Login() {
                 <p className="text-sm text-red-500">{errors.email.message}</p>
               )}
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
@@ -89,19 +92,24 @@ export default function Login() {
                 className={errors.password ? "border-red-500" : ""}
               />
               {errors.password && (
-                <p className="text-sm text-red-500">{errors.password.message}</p>
+                <p className="text-sm text-red-500">
+                  {errors.password.message}
+                </p>
               )}
             </div>
-            
+
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
-          
+
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
               Don't have an account?{" "}
-              <Link href="/register" className="text-primary hover:underline font-medium">
+              <Link
+                href="/register"
+                className="text-primary hover:underline font-medium"
+              >
                 Sign up
               </Link>
             </p>

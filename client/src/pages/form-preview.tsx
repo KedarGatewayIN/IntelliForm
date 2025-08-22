@@ -4,7 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Navbar from "@/components/layout/navbar";
 import QuestionRenderer from "@/components/form-stepper/question-renderer";
-import { ArrowLeftIcon, CodeIcon, ExternalLinkIcon, ShareIcon } from "lucide-react";
+import {
+  ArrowLeftIcon,
+  CodeIcon,
+  ExternalLinkIcon,
+  ShareIcon,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { Form } from "@shared/schema";
@@ -37,7 +42,7 @@ export default function FormPreview({
       let submission = answers;
       if (params.sid) {
         const response = await fetch(
-          `/api/forms/${params.id}/submission/${params.sid}`
+          `/api/forms/${params.id}/submission/${params.sid}`,
         );
         submission = (await response.json())[0].data;
       }
@@ -49,7 +54,9 @@ export default function FormPreview({
     })();
   }, []);
 
-  useTitle(state.form?.title ? `${state.form.title} (Preview)` : "Form Preview");
+  useTitle(
+    state.form?.title ? `${state.form.title} (Preview)` : "Form Preview",
+  );
 
   useEffect(() => {
     if (answers && Object.keys(answers).length > 0) {

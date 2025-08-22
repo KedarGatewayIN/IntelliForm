@@ -65,7 +65,7 @@ class AIService {
    */
   async chat(
     message: string,
-    thread?: { role: "user" | "assistant"; content: string }[]
+    thread?: { role: "user" | "assistant"; content: string }[],
   ): Promise<{ content: string; conversation_finished: boolean }> {
     try {
       const response = await this.llm.invoke([
@@ -331,7 +331,7 @@ class AIService {
     } catch (error) {
       console.error("AI service error or invalid JSON response:", error);
       throw new Error(
-        "Failed to get or parse problem ranking from AI service."
+        "Failed to get or parse problem ranking from AI service.",
       );
     }
   }
@@ -342,7 +342,7 @@ class AIService {
   async buildForm(
     message: string,
     currentForm: any,
-    conversationHistory?: any[]
+    conversationHistory?: any[],
   ): Promise<{ message: string; formData?: any }> {
     try {
       const response = await this.llm.invoke([

@@ -78,7 +78,7 @@ export default function Navbar() {
           {
             credentials: "include",
             signal: ac.signal,
-          }
+          },
         );
         if (!resp.ok) {
           setResults([]);
@@ -143,7 +143,7 @@ export default function Navbar() {
                       "flex items-center gap-2 font-medium transition-colors px-3 py-2 rounded-md",
                       isActive
                         ? "bg-primary/10 text-primary"
-                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100",
                     )}
                   >
                     <Icon className="h-4 w-4" />
@@ -199,15 +199,15 @@ export default function Navbar() {
                 <div
                   className={cn(
                     "absolute mt-2 w-full rounded-lg border border-gray-200 bg-white shadow-xl z-50 max-h-96 overflow-auto",
-                    loading ? "opacity-100" : ""
+                    loading ? "opacity-100" : "",
                   )}
                 >
                   <div className="px-3 py-2 text-xs text-gray-500">
                     {loading
                       ? "Searching…"
                       : results.length === 0
-                      ? "No results"
-                      : "Results"}
+                        ? "No results"
+                        : "Results"}
                   </div>
                   <ul className="divide-y divide-gray-100">
                     {results.map((r) => {

@@ -68,11 +68,11 @@ export default function Dashboard() {
     totalForms: forms.length,
     totalResponses: forms.reduce(
       (acc, form) => acc + (form.submissions?.length || 0),
-      0
+      0,
     ),
     aiConversations: forms.reduce(
       (acc, form) => acc + (form.aiConversationCount || 0),
-      0
+      0,
     ),
     avgTime: formatDuration(avgSeconds),
   };

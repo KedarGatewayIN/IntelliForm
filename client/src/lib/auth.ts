@@ -25,7 +25,11 @@ export class AuthService {
   }
 
   async register(credentials: RegisterCredentials): Promise<User> {
-    const response = await apiRequest("POST", "/api/auth/register", credentials);
+    const response = await apiRequest(
+      "POST",
+      "/api/auth/register",
+      credentials,
+    );
     const result = await response.json();
     return result.user;
   }
@@ -36,15 +40,15 @@ export class AuthService {
 
   async getCurrentUser(): Promise<User | null> {
     try {
-      const response = await fetch("/api/auth/me", { 
-        credentials: "include" 
+      const response = await fetch("/api/auth/me", {
+        credentials: "include",
       });
-      
+
       if (response.ok) {
         const result = await response.json();
         return result.user;
       }
-      
+
       return null;
     } catch {
       return null;

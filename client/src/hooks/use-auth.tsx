@@ -1,4 +1,10 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useLocation } from "wouter";
@@ -7,7 +13,7 @@ interface User {
   id: string;
   username: string;
   email: string;
-  todoCount: number
+  todoCount: number;
 }
 
 interface AuthContextType {
@@ -28,7 +34,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryKey: ["/api/auth/me"],
     queryFn: async () => {
       try {
-        const response = await fetch("/api/auth/me", { credentials: "include" });
+        const response = await fetch("/api/auth/me", {
+          credentials: "include",
+        });
         if (response.ok) {
           const data = await response.json();
           setUser(data.user);

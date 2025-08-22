@@ -36,10 +36,12 @@ export interface IStorage {
   getUserTodoCount(userId: string): Promise<number>;
 
   // Form methods
-  getUserForms(userId: string): Promise<(Form & { 
-    submissions: Submission[]; 
-    aiConversationCount: number;
-  })[]>;
+  getUserForms(userId: string): Promise<
+    (Form & {
+      submissions: Submission[];
+      aiConversationCount: number;
+    })[]
+  >;
   getForm(id: string): Promise<Form | undefined>;
   createForm(form: InsertForm): Promise<Form>;
   updateForm(id: string, updates: Partial<Form>): Promise<Form>;
@@ -86,8 +88,35 @@ export interface IStorage {
 
   // AI Conversation methods
   saveAIConversation(
-    conversation: InsertAIConversation
+    conversation: InsertAIConversation,
   ): Promise<AIConversation>;
+
+  // Resolved problems (grouped)
+  getResolvedProblemsGrouped(options: {
+    userId: string;
+    page?: number;
+    pageSize?: number;
+    filters?: {
+      formId?: string;
+      dateFrom?: string;
+      dateTo?: string;
+      query?: string;
+    };
+  }): Promise<{
+    items: Array<{
+      problem: string;
+      count: number;
+      form: Array<{
+        form_id: string;
+        title: string | null;
+        submission_id: string;
+        completed_at: string | null;
+      }>;
+    }>;
+    total: number;
+    page: number;
+    pageSize: number;
+  }>;
 
   // Search
   searchAll(options: {
@@ -160,11 +189,16 @@ export class DatabaseStorage implements IStorage {
     return rows[0]?.count || 0;
   }
 
-  async getUserForms(userId: string): Promise<(Form & {
-    submissions: Submission[];
-    aiConversationCount: number;
-  })[]> {
-    type FormWithAgg = Form & { submissions: Submission[]; aiConversationCount: number };
+  async getUserForms(userId: string): Promise<
+    (Form & {
+      submissions: Submission[];
+      aiConversationCount: number;
+    })[]
+  > {
+    type FormWithAgg = Form & {
+      submissions: Submission[];
+      aiConversationCount: number;
+    };
 
     const sqlText = `
       SELECT
@@ -214,7 +248,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createForm(form: InsertForm): Promise<Form> {
-    const [newForm] = await db.insert(forms).values(form as any).returning();
+    const [newForm] = await db
+      .insert(forms)
+      .values(form as any)
+      .returning();
     return newForm;
   }
 
@@ -232,7 +269,7 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(aiConversations)
       .where(
-        sql`submission_id IN (SELECT id FROM submissions WHERE form_id = ${id})`
+        sql`submission_id IN (SELECT id FROM submissions WHERE form_id = ${id})`,
       );
 
     await db.delete(submissions).where(eq(submissions.formId, id));
@@ -270,21 +307,34 @@ export class DatabaseStorage implements IStorage {
 
         if ("problems" in sentiment && Array.isArray(sentiment.problems)) {
           problems = sentiment.problems
-            .filter((p) => p && typeof p.problem === "string" && p.problem.trim().length > 0)
+            .filter(
+              (p) =>
+                p &&
+                typeof p.problem === "string" &&
+                p.problem.trim().length > 0,
+            )
             .slice(0, 10)
             .map((p) => ({
               id: randomUUID(),
               problem: p.problem.trim(),
-              solutions: Array.isArray(p.solutions) ? p.solutions.slice(0, 3) : [],
+              solutions: Array.isArray(p.solutions)
+                ? p.solutions.slice(0, 3)
+                : [],
               resolved: false,
               resolutionComment: "",
             }));
-        } else if ("reason" in sentiment && typeof sentiment.reason === "string" && sentiment.reason.trim().length > 0) {
+        } else if (
+          "reason" in sentiment &&
+          typeof sentiment.reason === "string" &&
+          sentiment.reason.trim().length > 0
+        ) {
           problems = [
             {
               id: randomUUID(),
               problem: sentiment.reason.trim(),
-              solutions: Array.isArray((sentiment as any).solutions) ? (sentiment as any).solutions!.slice(0, 3) : [],
+              solutions: Array.isArray((sentiment as any).solutions)
+                ? (sentiment as any).solutions!.slice(0, 3)
+                : [],
               resolved: false,
               resolutionComment: "",
             },
@@ -308,7 +358,7 @@ export class DatabaseStorage implements IStorage {
 
   async updateSubmission(
     submission_id: string,
-    submission: Partial<InsertSubmission>
+    submission: Partial<InsertSubmission>,
   ): Promise<Submission> {
     const [updatedSubmission] = await db
       .update(submissions)
@@ -337,7 +387,7 @@ export class DatabaseStorage implements IStorage {
           ...submission,
           aiConversations: conversations,
         };
-      })
+      }),
     );
 
     return submissionsWithAI;
@@ -415,9 +465,7 @@ export class DatabaseStorage implements IStorage {
     };
   }): Promise<(Submission & { formTitle: string | null })[]> {
     const params: any[] = [userId];
-    const where: string[] = [
-      `f.user_id = $${params.length}`,
-    ];
+    const where: string[] = [`f.user_id = $${params.length}`];
 
     if (filters.formId) {
       params.push(filters.formId);
@@ -435,25 +483,33 @@ export class DatabaseStorage implements IStorage {
       params.push(`%${filters.ip}%`);
       where.push(`s.ip_address ILIKE $${params.length}`);
     }
-    if (typeof filters.hasAiProblem === 'boolean') {
+    if (typeof filters.hasAiProblem === "boolean") {
       if (filters.hasAiProblem) {
-        where.push(`EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`);
+        where.push(
+          `EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`,
+        );
       } else {
-        where.push(`NOT EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`);
+        where.push(
+          `NOT EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`,
+        );
       }
     }
-    if (typeof filters.resolved === 'boolean') {
+    if (typeof filters.resolved === "boolean") {
       if (filters.resolved) {
-        where.push(`NOT EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`);
+        where.push(
+          `NOT EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`,
+        );
       } else {
-        where.push(`EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`);
+        where.push(
+          `EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`,
+        );
       }
     }
-    if (typeof filters.timeMin === 'number') {
+    if (typeof filters.timeMin === "number") {
       params.push(filters.timeMin);
       where.push(`s.time_taken >= $${params.length}`);
     }
-    if (typeof filters.timeMax === 'number') {
+    if (typeof filters.timeMax === "number") {
       params.push(filters.timeMax);
       where.push(`s.time_taken <= $${params.length}`);
     }
@@ -465,14 +521,14 @@ export class DatabaseStorage implements IStorage {
       params.push(`%${filters.aiQuery}%`);
       where.push(`s.problems::text ILIKE $${params.length}`);
     }
-    if (typeof filters.hasAiConversation === 'boolean') {
+    if (typeof filters.hasAiConversation === "boolean") {
       if (filters.hasAiConversation) {
         where.push(
-          `EXISTS (SELECT 1 FROM ai_conversations ac WHERE ac.submission_id = s.id)`
+          `EXISTS (SELECT 1 FROM ai_conversations ac WHERE ac.submission_id = s.id)`,
         );
       } else {
         where.push(
-          `NOT EXISTS (SELECT 1 FROM ai_conversations ac WHERE ac.submission_id = s.id)`
+          `NOT EXISTS (SELECT 1 FROM ai_conversations ac WHERE ac.submission_id = s.id)`,
         );
       }
     }
@@ -495,13 +551,15 @@ export class DatabaseStorage implements IStorage {
         f.title as "formTitle"
       FROM submissions s
       LEFT JOIN forms f ON f.id = s.form_id
-      WHERE ${where.join(' AND ')}
+      WHERE ${where.join(" AND ")}
       ORDER BY s.completed_at DESC
       OFFSET $${offsetIndex}
       LIMIT $${limitIndex}
     `;
 
-    const { rows } = await pool.query<Submission & { formTitle: string | null }>(sqlText, params);
+    const { rows } = await pool.query<
+      Submission & { formTitle: string | null }
+    >(sqlText, params);
     return rows;
   }
 
@@ -525,9 +583,7 @@ export class DatabaseStorage implements IStorage {
     };
   }): Promise<number> {
     const params: any[] = [userId];
-    const where: string[] = [
-      `f.user_id = $${params.length}`,
-    ];
+    const where: string[] = [`f.user_id = $${params.length}`];
 
     if (filters.formId) {
       params.push(filters.formId);
@@ -545,25 +601,33 @@ export class DatabaseStorage implements IStorage {
       params.push(`%${filters.ip}%`);
       where.push(`s.ip_address ILIKE $${params.length}`);
     }
-    if (typeof filters.hasAiProblem === 'boolean') {
+    if (typeof filters.hasAiProblem === "boolean") {
       if (filters.hasAiProblem) {
-        where.push(`EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`);
+        where.push(
+          `EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`,
+        );
       } else {
-        where.push(`NOT EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`);
+        where.push(
+          `NOT EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`,
+        );
       }
     }
-    if (typeof filters.resolved === 'boolean') {
+    if (typeof filters.resolved === "boolean") {
       if (filters.resolved) {
-        where.push(`NOT EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`);
+        where.push(
+          `NOT EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`,
+        );
       } else {
-        where.push(`EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`);
+        where.push(
+          `EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == false)'))`,
+        );
       }
     }
-    if (typeof filters.timeMin === 'number') {
+    if (typeof filters.timeMin === "number") {
       params.push(filters.timeMin);
       where.push(`s.time_taken >= $${params.length}`);
     }
-    if (typeof filters.timeMax === 'number') {
+    if (typeof filters.timeMax === "number") {
       params.push(filters.timeMax);
       where.push(`s.time_taken <= $${params.length}`);
     }
@@ -575,14 +639,14 @@ export class DatabaseStorage implements IStorage {
       params.push(`%${filters.aiQuery}%`);
       where.push(`s.problems::text ILIKE $${params.length}`);
     }
-    if (typeof filters.hasAiConversation === 'boolean') {
+    if (typeof filters.hasAiConversation === "boolean") {
       if (filters.hasAiConversation) {
         where.push(
-          `EXISTS (SELECT 1 FROM ai_conversations ac WHERE ac.submission_id = s.id)`
+          `EXISTS (SELECT 1 FROM ai_conversations ac WHERE ac.submission_id = s.id)`,
         );
       } else {
         where.push(
-          `NOT EXISTS (SELECT 1 FROM ai_conversations ac WHERE ac.submission_id = s.id)`
+          `NOT EXISTS (SELECT 1 FROM ai_conversations ac WHERE ac.submission_id = s.id)`,
         );
       }
     }
@@ -591,7 +655,7 @@ export class DatabaseStorage implements IStorage {
       SELECT COUNT(*)::int as count
       FROM submissions s
       LEFT JOIN forms f ON f.id = s.form_id
-      WHERE ${where.join(' AND ')}
+      WHERE ${where.join(" AND ")}
     `;
 
     const { rows } = await pool.query<{ count: number }>(countSql, params);
@@ -680,6 +744,7 @@ export class DatabaseStorage implements IStorage {
         submission_id: submissions.id,
         form_id: forms.id,
         title: forms.title,
+        completed_at: submissions.completedAt,
       })
       .from(submissions)
       .innerJoin(forms, eq(forms.id, submissions.formId))
@@ -687,7 +752,7 @@ export class DatabaseStorage implements IStorage {
 
     const finalData = problems.map((p) => {
       const matchingForms = submissionWithForms.filter((f) =>
-        p.ids.includes(f.submission_id)
+        p.ids.includes(f.submission_id),
       );
 
       return {
@@ -696,6 +761,7 @@ export class DatabaseStorage implements IStorage {
           form_id: f.form_id,
           title: f.title,
           submission_id: f.submission_id,
+          completed_at: f.completed_at,
         })),
       };
     });
@@ -706,7 +772,7 @@ export class DatabaseStorage implements IStorage {
   async updateSubmissionProblem(
     submissionId: string,
     problemId: string,
-    updates: { resolved?: boolean; resolutionComment?: string }
+    updates: { resolved?: boolean; resolutionComment?: string },
   ): Promise<Submission> {
     const [current] = await db
       .select()
@@ -726,7 +792,7 @@ export class DatabaseStorage implements IStorage {
                 ? updates.resolutionComment
                 : p.resolutionComment,
           }
-        : p
+        : p,
     );
 
     return await this.updateSubmission(submissionId, {
@@ -737,7 +803,7 @@ export class DatabaseStorage implements IStorage {
   async resolveGroupedProblem(
     canonicalProblem: string,
     submissionIds: string[],
-    resolutionComment: string
+    resolutionComment: string,
   ): Promise<number> {
     const rows = await db
       .select()
@@ -753,7 +819,8 @@ export class DatabaseStorage implements IStorage {
       let changed = false;
       const next: Problem[] = probs.map((p) => {
         const pp = norm(p.problem);
-        const matches = pp === canon || pp.includes(canon) || canon.includes(pp);
+        const matches =
+          pp === canon || pp.includes(canon) || canon.includes(pp);
         if (!p.resolved && matches) {
           changed = true;
           return { ...p, resolved: true, resolutionComment };
@@ -771,7 +838,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async saveAIConversation(
-    conversation: InsertAIConversation
+    conversation: InsertAIConversation,
   ): Promise<AIConversation> {
     const [newConversation] = await db
       .insert(aiConversations)
@@ -779,6 +846,120 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     return newConversation;
+  }
+
+  async getResolvedProblemsGrouped({
+    userId,
+    page = 1,
+    pageSize = 10,
+    filters = {},
+  }: {
+    userId: string;
+    page?: number;
+    pageSize?: number;
+    filters?: {
+      formId?: string;
+      dateFrom?: string;
+      dateTo?: string;
+      query?: string;
+    };
+  }): Promise<{
+    items: Array<{
+      problem: string;
+      count: number;
+      form: Array<{
+        form_id: string;
+        title: string | null;
+        submission_id: string;
+        completed_at: string | null;
+      }>;
+    }>;
+    total: number;
+    page: number;
+    pageSize: number;
+  }> {
+    const params: any[] = [userId];
+    const where: string[] = [
+      `f.user_id = $${params.length}`,
+      `EXISTS (SELECT 1 FROM jsonb_path_query_array((s.problems::jsonb), '$[*] ? (@.resolved == true)'))`,
+    ];
+
+    if (filters.formId) {
+      params.push(filters.formId);
+      where.push(`s.form_id = $${params.length}`);
+    }
+    if (filters.dateFrom) {
+      params.push(filters.dateFrom);
+      where.push(`s.completed_at >= $${params.length}`);
+    }
+    if (filters.dateTo) {
+      params.push(filters.dateTo);
+      where.push(`s.completed_at <= $${params.length}`);
+    }
+    if (filters.query && filters.query.trim()) {
+      params.push(`%${filters.query.trim()}%`);
+      where.push(`s.problems::text ILIKE $${params.length}`);
+    }
+
+    const sqlText = `
+      SELECT s.id, s.form_id as form_id, s.completed_at as completed_at, s.problems, f.title
+      FROM submissions s
+      JOIN forms f ON f.id = s.form_id
+      WHERE ${where.join(" AND ")}
+      ORDER BY s.completed_at DESC
+    `;
+
+    const { rows } = await pool.query<{
+      id: string;
+      form_id: string;
+      completed_at: string | null;
+      problems: any;
+      title: string | null;
+    }>(sqlText, params);
+
+    const normalize = (s: string) => s.toLowerCase().trim();
+    const groups = new Map<
+      string,
+      {
+        problem: string;
+        count: number;
+        form: Array<{
+          form_id: string;
+          title: string | null;
+          submission_id: string;
+          completed_at: string | null;
+        }>;
+      }
+    >();
+
+    for (const row of rows) {
+      const probs: Problem[] = (row as any).problems || [];
+      for (const p of probs) {
+        if (!p?.problem) continue;
+        if (p.resolved !== true) continue;
+        const key = normalize(p.problem);
+        if (!groups.has(key)) {
+          groups.set(key, { problem: p.problem, count: 0, form: [] });
+        }
+        const g = groups.get(key)!;
+        g.count += 1;
+        g.form.push({
+          form_id: row.form_id,
+          title: row.title,
+          submission_id: row.id,
+          completed_at: row.completed_at,
+        });
+      }
+    }
+
+    const all = Array.from(groups.values()).sort((a, b) => b.count - a.count);
+    const total = all.length;
+    const safePageSize = Math.max(1, Math.min(100, pageSize));
+    const safePage = Math.max(1, page);
+    const start = (safePage - 1) * safePageSize;
+    const items = all.slice(start, start + safePageSize);
+
+    return { items, total, page: safePage, pageSize: safePageSize };
   }
 
   async searchAll({
@@ -849,7 +1030,7 @@ export class DatabaseStorage implements IStorage {
     const [formsRes, submissionsRes, aiRes] = await Promise.all([
       pool.query<{ id: string; title: string; description: string | null }>(
         formsSql,
-        [userId, like, limitPerType]
+        [userId, like, limitPerType],
       ),
       pool.query<{
         id: string;
