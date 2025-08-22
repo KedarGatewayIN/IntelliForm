@@ -301,8 +301,8 @@ export default function RecentSubmissionsPage() {
       if (filters.hasAiConversation !== "any")
         params.set("hasAiConversation", filters.hasAiConversation);
       if (filters.dateFrom)
-        params.set("dateFrom", filters.dateFrom.toISOString());
-      if (filters.dateTo) params.set("dateTo", filters.dateTo.toISOString());
+        params.set("dateFrom", new Date(filters.dateFrom).toISOString());
+      if (filters.dateTo) params.set("dateTo", new Date(filters.dateTo).toISOString());
       const res = await apiRequest(
         "GET",
         `/api/submissions?${params.toString()}`,
@@ -687,7 +687,13 @@ export default function RecentSubmissionsPage() {
                               setPage(1);
                               setFilters((f) => ({
                                 ...f,
-                                dateFrom: d || undefined,
+                                dateFrom: d
+                                  ? (() => {
+                                      const s = new Date(d);
+                                      s.setHours(0, 0, 0, 0);
+                                      return s;
+                                    })()
+                                  : undefined,
                               }));
                             }}
                             initialFocus
@@ -720,7 +726,13 @@ export default function RecentSubmissionsPage() {
                               setPage(1);
                               setFilters((f) => ({
                                 ...f,
-                                dateTo: d || undefined,
+                                dateTo: d
+                                  ? (() => {
+                                      const e = new Date(d);
+                                      e.setHours(23, 59, 59, 999);
+                                      return e;
+                                    })()
+                                  : undefined,
                               }));
                             }}
                             initialFocus
