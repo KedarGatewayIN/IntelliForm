@@ -86,6 +86,7 @@ const TodoPage: React.FC = () => {
   const [dateFrom, setDateFrom] = React.useState<Date>(() => {
     const d = new Date();
     d.setMonth(d.getMonth() - 1);
+    d.setHours(0, 0, 0, 0);
     return d;
   });
   const [dateTo, setDateTo] = React.useState<Date | undefined>(undefined);
@@ -235,7 +236,14 @@ const TodoPage: React.FC = () => {
                   <Calendar
                     mode="single"
                     selected={dateFrom}
-                    onSelect={(d) => d && setDateFrom(d)}
+                    onSelect={(d) =>
+                      d &&
+                      setDateFrom(() => {
+                        const s = new Date(d);
+                        s.setHours(0, 0, 0, 0);
+                        return s;
+                      })
+                    }
                     initialFocus
                   />
                 </DatePopoverContent>
@@ -250,7 +258,14 @@ const TodoPage: React.FC = () => {
                   <Calendar
                     mode="single"
                     selected={dateTo}
-                    onSelect={(d) => setDateTo(d || undefined)}
+                    onSelect={(d) =>
+                      setDateTo(() => {
+                        if (!d) return undefined;
+                        const e = new Date(d);
+                        e.setHours(23, 59, 59, 999);
+                        return e;
+                      })
+                    }
                     initialFocus
                   />
                 </DatePopoverContent>
@@ -387,7 +402,7 @@ const TodoPage: React.FC = () => {
                                 <span className="font-medium">
                                   {form.title}
                                 </span>
-                                <span className="text-xs text-muted-foreground truncate">
+                                <span className="text-xs truncate">
                                   {form.completed_at
                                     ? new Date(
                                         form.completed_at,
@@ -479,7 +494,14 @@ const TodoPage: React.FC = () => {
                   <Calendar
                     mode="single"
                     selected={resolvedFrom}
-                    onSelect={(d) => setResolvedFrom(d || undefined)}
+                    onSelect={(d) =>
+                      setResolvedFrom(() => {
+                        if (!d) return undefined;
+                        const s = new Date(d);
+                        s.setHours(0, 0, 0, 0);
+                        return s;
+                      })
+                    }
                     initialFocus
                   />
                 </DatePopoverContent>
@@ -494,7 +516,14 @@ const TodoPage: React.FC = () => {
                   <Calendar
                     mode="single"
                     selected={resolvedTo}
-                    onSelect={(d) => setResolvedTo(d || undefined)}
+                    onSelect={(d) =>
+                      setResolvedTo(() => {
+                        if (!d) return undefined;
+                        const e = new Date(d);
+                        e.setHours(23, 59, 59, 999);
+                        return e;
+                      })
+                    }
                     initialFocus
                   />
                 </DatePopoverContent>
