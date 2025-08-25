@@ -7,49 +7,61 @@ import { AuthProvider } from "@/hooks/use-auth";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
-import Dashboard from "@/pages/dashboard";
+import DashboardNew from "@/pages/dashboard-new";
+import FormsList from "@/pages/forms-list";
 import FormBuilder from "@/pages/form-builder";
+import FormBuilderNew from "@/pages/form-builder-new";
 import FormPreview from "@/pages/form-preview";
 import FormAnalytics from "@/pages/form-analytics";
+import AnalyticsNew from "@/pages/analytics-new";
+import TodoNew from "@/pages/todo-new";
+import Bugs from "@/pages/bugs";
 import ProtectedRoute from "@/components/layout/protected-route";
 import ConversationalForm from "./pages/conversation";
-import AnalyticsPage from "./pages/analytics";
-import RecentSubmissionsPage from "./pages/recent-submissions";
-import TodoPage from "./pages/todo";
 
 function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      <Route path="/dashboard">
+        <ProtectedRoute>
+          <DashboardNew />
+        </ProtectedRoute>
+      </Route>
       <Route path="/">
         <ProtectedRoute>
-          <Dashboard />
+          <DashboardNew />
         </ProtectedRoute>
       </Route>
-      <Route path="/analytics">
+      <Route path="/forms" nest>
         <ProtectedRoute>
-          <AnalyticsPage />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/todo">
-        <ProtectedRoute>
-          <TodoPage />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/submissions">
-        <ProtectedRoute>
-          <RecentSubmissionsPage />
+          <FormsList />
         </ProtectedRoute>
       </Route>
       <Route path="/forms/new">
         <ProtectedRoute>
-          <FormBuilder />
+          <FormBuilderNew />
         </ProtectedRoute>
       </Route>
       <Route path="/forms/:id/edit">
         <ProtectedRoute>
-          <FormBuilder />
+          <FormBuilderNew />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/analytics/:id?">
+        <ProtectedRoute>
+          <AnalyticsNew />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/todo">
+        <ProtectedRoute>
+          <TodoNew />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/bugs">
+        <ProtectedRoute>
+          <Bugs />
         </ProtectedRoute>
       </Route>
       <Route path="/forms/:id/preview">

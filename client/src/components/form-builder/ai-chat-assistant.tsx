@@ -124,25 +124,8 @@ export default function AIChatAssistant({
     }
   };
 
-  if (!isOpen) {
-    return (
-      <Button
-        onClick={onToggle}
-        className="fixed bottom-6 right-[22rem] h-14 w-14 rounded-full 
-             bg-gradient-to-br from-indigo-500 to-purple-600 
-             shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-300 
-             border border-white/30 backdrop-blur-md"
-        size="sm"
-      >
-        <div className="relative flex items-center justify-center">
-          <MessageCircleIcon className="h-6 w-6 text-white drop-shadow" />
-        </div>
-      </Button>
-    );
-  }
-
   return (
-    <Card className="fixed bottom-6 right-[22rem] w-96 h-[600px] shadow-2xl border border-gray-200/50 bg-white/95 backdrop-blur-xl rounded-2xl overflow-hidden transform transition-all duration-300 animate-in slide-in-from-bottom-4 fade-in">
+    <Card className="w-full h-full shadow-lg border border-gray-200 bg-white rounded-lg overflow-hidden">
       <CardHeader className="p-[1.5rem] bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-b border-gray-200/30">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center space-x-3">
@@ -164,18 +147,20 @@ export default function AIChatAssistant({
             </div>
           </CardTitle>
 
-          <Button
-            onClick={onToggle}
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 rounded-full hover:bg-white/10 transition-colors"
-          >
-            <MinusIcon className="h-4 w-4 text-white" />
-          </Button>
+          {!isOpen && (
+            <Button
+              onClick={onToggle}
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 rounded-full hover:bg-white/10 transition-colors"
+            >
+              <MinusIcon className="h-4 w-4 text-white" />
+            </Button>
+          )}
         </div>
       </CardHeader>
 
-      <CardContent className="flex flex-col h-[500px] p-0">
+      <CardContent className="flex flex-col flex-1 p-0">
         <div className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth">
           {messages.map((message, index) => (
             <div
