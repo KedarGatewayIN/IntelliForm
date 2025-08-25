@@ -7,49 +7,44 @@ import { AuthProvider } from "@/hooks/use-auth";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
-import Dashboard from "@/pages/dashboard";
-import FormBuilder from "@/pages/form-builder";
+import NewDashboard from "@/pages/new-dashboard";
+import FormsList from "@/pages/forms-list";
+import NewFormBuilder from "@/pages/new-form-builder";
 import FormPreview from "@/pages/form-preview";
-import FormAnalytics from "@/pages/form-analytics";
+import NewAnalytics from "@/pages/new-analytics";
+import NewTodo from "@/pages/new-todo";
+import Bugs from "@/pages/bugs";
+import Profile from "@/pages/profile";
 import ProtectedRoute from "@/components/layout/protected-route";
 import ConversationalForm from "./pages/conversation";
-import AnalyticsPage from "./pages/analytics";
-import RecentSubmissionsPage from "./pages/recent-submissions";
-import TodoPage from "./pages/todo";
 
 function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      
+      {/* Main Dashboard */}
       <Route path="/">
         <ProtectedRoute>
-          <Dashboard />
+          <NewDashboard />
         </ProtectedRoute>
       </Route>
-      <Route path="/analytics">
+      
+      {/* Forms Routes */}
+      <Route path="/forms">
         <ProtectedRoute>
-          <AnalyticsPage />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/todo">
-        <ProtectedRoute>
-          <TodoPage />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/submissions">
-        <ProtectedRoute>
-          <RecentSubmissionsPage />
+          <FormsList />
         </ProtectedRoute>
       </Route>
       <Route path="/forms/new">
         <ProtectedRoute>
-          <FormBuilder />
+          <NewFormBuilder />
         </ProtectedRoute>
       </Route>
       <Route path="/forms/:id/edit">
         <ProtectedRoute>
-          <FormBuilder />
+          <NewFormBuilder />
         </ProtectedRoute>
       </Route>
       <Route path="/forms/:id/preview">
@@ -59,10 +54,28 @@ function Router() {
       </Route>
       <Route path="/forms/:id/analytics">
         <ProtectedRoute>
-          <FormAnalytics />
+          <NewAnalytics />
         </ProtectedRoute>
       </Route>
-      <Route path="/forms/:id/responses/:sid" component={FormPreview} />
+      
+      {/* Navigation Pages */}
+      <Route path="/todo">
+        <ProtectedRoute>
+          <NewTodo />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/bugs">
+        <ProtectedRoute>
+          <Bugs />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/profile">
+        <ProtectedRoute>
+          <Profile />
+        </ProtectedRoute>
+      </Route>
+      
+      {/* Legacy/Additional Routes */}
       <Route path="/f/:id" component={ConversationalForm} />
       <Route component={NotFound} />
     </Switch>
